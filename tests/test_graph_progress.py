@@ -23,7 +23,9 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     assert any("Crawler Agent" in event for event in events if isinstance(event, str))
     assert any("Security Agent" in event for event in events if isinstance(event, str))
     assert any("Performance Agent" in event for event in events if isinstance(event, str))
+    assert any("Quality Agent" in event for event in events if isinstance(event, str))
     assert isinstance(events[-1], AuditReport)
     assert len(events[-1].findings) == 2
     assert "Security Agent" in events[-1].agents_run
     assert "Performance Agent" in events[-1].agents_run
+    assert "Quality Agent" in events[-1].agents_run
