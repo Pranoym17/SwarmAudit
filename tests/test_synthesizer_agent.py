@@ -1,0 +1,48 @@
+import pytest
+
+from app.agents.synthesizer_agent import SynthesizerAgent
+from app.schemas import AgentOutput, Finding, RepoScanResult, Severity
+
+
+def make_finding(index: int, agent: str = "Docs Agent", severity: Severity = Severity.low) -> Finding:
+    return Finding(
+        title=f"Finding {index}",
+        severity=severity,
+        file_path=f"file_{index}.py",
+        line_start=1,
+        line_end=1,
+        description="Description",
+        why_it_matters="Why",
+        suggested_fix="Fix",
+        agent_source=agent,
+    )
+
+
+@pytest.mark.anyio
+async def test_synthesizer_preserves_totals_when_display_is_truncated():
+    output = AgentOutput(
+        agent_name="Docs Agent",
+        findings=[make_finding(index) for index in range(20)],
+    )
+    repo = RepoScanResult(repo_url="https://github.com/example/project", local_path=".", files=[], skipped_files=0)
+
+    report = await SynthesizerAgent().synthesize(repo, [output])
+
+    assert report.total_findings_count == 20
+    assert report.displayed_findings_count == 8
+    assert report.hidden_findings_count == 12
+    assert report.agent_finding_counts["Docs Agent"] == 20
+    assert any("displaying 8 of 20" in warning for warning in report.warnings)
+
+
+@pytest.mark.anyio
+async def test_synthesizer_keeps_high_severity_before_low_findings():
+    outputs = [
+        AgentOutput(agent_name="Docs Agent", findings=[make_finding(1, severity=Severity.low)]),
+        AgentOutput(agent_name="Security Agent", findings=[make_finding(2, "Security Agent", Severity.high)]),
+    ]
+    repo = RepoScanResult(repo_url="https://github.com/example/project", local_path=".", files=[], skipped_files=0)
+
+    report = await SynthesizerAgent().synthesize(repo, outputs)
+
+    assert report.findings[0].severity == Severity.high

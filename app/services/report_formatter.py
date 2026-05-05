@@ -8,6 +8,7 @@ def format_report_markdown(report: AuditReport) -> str:
         f"Repository: `{report.repo_url}`",
         f"Files scanned: `{report.scanned_file_count}`",
         f"Files skipped: `{report.skipped_file_count}`",
+        f"Findings shown: `{report.displayed_findings_count}` of `{report.total_findings_count}`",
         "",
         "## Severity Summary",
         "",
@@ -15,6 +16,11 @@ def format_report_markdown(report: AuditReport) -> str:
 
     for severity in [Severity.critical, Severity.high, Severity.medium, Severity.low]:
         lines.append(f"- **{severity.value}**: {report.severity_summary.get(severity, 0)}")
+
+    if report.agent_finding_counts:
+        lines.extend(["", "## Agent Summary", ""])
+        for agent_name, count in report.agent_finding_counts.items():
+            lines.append(f"- **{agent_name}**: {count}")
 
     if report.warnings:
         lines.extend(["", "## Warnings", ""])

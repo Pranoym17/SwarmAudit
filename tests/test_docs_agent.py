@@ -49,6 +49,25 @@ async def test_docs_agent_flags_public_python_symbol_without_docstring():
 
     output = await DocsAgent().analyze([chunk])
 
-    assert output.findings[0].title == "Public Python symbol missing docstring"
+    assert output.findings[0].title == "Public Python symbols missing docstrings"
     assert output.findings[0].severity == Severity.low
     assert output.findings[0].line_start == 10
+
+
+@pytest.mark.anyio
+async def test_docs_agent_summarizes_missing_docstrings_per_chunk():
+    chunk = CodeChunk(
+        file_path="service.py",
+        language="Python",
+        line_start=1,
+        line_end=4,
+        content="def first():\n    pass\n\ndef second():\n    pass",
+    )
+
+    output = await DocsAgent().analyze([chunk])
+
+    docstring_findings = [
+        finding for finding in output.findings if finding.title == "Public Python symbols missing docstrings"
+    ]
+    assert len(docstring_findings) == 1
+    assert "2 public symbols" in docstring_findings[0].description

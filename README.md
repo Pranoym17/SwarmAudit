@@ -58,6 +58,8 @@ Each finding includes:
 - suggested fix
 - agent source
 
+Reports preserve full finding totals while displaying a prioritized subset for readability. High-severity findings are shown first, repeated low-severity findings are summarized, and warnings explain when lower-priority findings are hidden from the demo report.
+
 ## Current Agents
 
 - Security Agent: flags hardcoded secrets, disabled TLS verification, and dynamic code execution.

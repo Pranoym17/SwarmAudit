@@ -63,6 +63,10 @@ class AuditReport(BaseModel):
     skipped_file_count: int
     findings: list[Finding]
     severity_summary: dict[Severity, int]
+    total_findings_count: int = 0
+    displayed_findings_count: int = 0
+    hidden_findings_count: int = 0
+    agent_finding_counts: dict[str, int] = Field(default_factory=dict)
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     agents_run: list[str]
     warnings: list[str] = Field(default_factory=list)

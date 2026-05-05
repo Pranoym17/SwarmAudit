@@ -86,7 +86,7 @@ class DocsAgent:
         return findings
 
     def _scan_python_docstrings(self, chunk: CodeChunk) -> list[Finding]:
-        findings: list[Finding] = []
+        missing_symbols: list[tuple[str, int]] = []
         lines = chunk.content.splitlines()
 
         for index, line in enumerate(lines):
@@ -101,19 +101,25 @@ class DocsAgent:
                 continue
 
             line_number = chunk.line_start + index
-            findings.append(
-                self._finding(
-                    "Public Python symbol missing docstring",
-                    Severity.low,
-                    chunk,
-                    line_number,
-                    line_number,
-                    f"`{symbol_name}` is public but does not start with a docstring.",
-                    "Add a short docstring describing purpose, parameters, return value, or side effects.",
-                )
-            )
+            missing_symbols.append((symbol_name, line_number))
 
-        return findings
+        if not missing_symbols:
+            return []
+
+        examples = ", ".join(f"`{name}` line {line}" for name, line in missing_symbols[:5])
+        extra_count = len(missing_symbols) - 5
+        extra_note = f" plus {extra_count} more" if extra_count > 0 else ""
+        return [
+            self._finding(
+                "Public Python symbols missing docstrings",
+                Severity.low,
+                chunk,
+                missing_symbols[0][1],
+                missing_symbols[-1][1],
+                f"{len(missing_symbols)} public symbols in this file section are missing docstrings: {examples}{extra_note}.",
+                "Add short docstrings to public functions/classes, starting with exported APIs and complex behavior.",
+            )
+        ]
 
     def _has_docstring(self, lines: list[str], definition_index: int) -> bool:
         for line in lines[definition_index + 1 : definition_index + 5]:

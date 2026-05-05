@@ -26,3 +26,6 @@ async def test_security_agent_and_synthesizer_return_structured_report():
     assert report.findings[0].file_path == "app.py"
     assert report.findings[0].line_start == 10
     assert report.severity_summary[Severity.high] == 1
+    assert report.total_findings_count == 1
+    assert report.displayed_findings_count == 1
+    assert report.hidden_findings_count == 0
