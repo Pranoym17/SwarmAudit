@@ -7,7 +7,7 @@ AI-powered multi-agent code auditing for GitHub repositories. Paste a public Git
 SwarmAudit currently runs with a mock-first LLM interface so the demo is not blocked by ROCm, vLLM, or AMD MI300X setup. The current graph is:
 
 ```text
-GitHub URL -> Crawler -> Chunker -> [Security Agent + Performance Agent + Quality Agent] -> Synthesizer -> Report
+GitHub URL -> Crawler -> Chunker -> [Security Agent + Performance Agent + Quality Agent + Docs Agent] -> Synthesizer -> Report
 ```
 
 ## Quick Start
@@ -63,6 +63,7 @@ Each finding includes:
 - Security Agent: flags hardcoded secrets, disabled TLS verification, and dynamic code execution.
 - Performance Agent: flags HTTP calls without timeouts, blocking sleep inside async functions, nested loops, file reads in loops, and synchronous Node.js filesystem calls.
 - Quality Agent: flags long functions, high branch density, large source sections, unresolved TODO/FIXME/HACK comments, and very short symbol names.
+- Docs Agent: flags incomplete README guidance and public Python symbols missing docstrings.
 - Synthesizer Agent: deduplicates findings, sorts by severity, and builds the final report.
 
 ## Tests

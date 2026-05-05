@@ -4,6 +4,7 @@ from typing import Annotated, TypedDict
 
 from langgraph.graph import END, StateGraph
 
+from app.agents.docs_agent import DocsAgent
 from app.agents.performance_agent import PerformanceAgent
 from app.agents.quality_agent import QualityAgent
 from app.agents.security_agent import SecurityAgent
@@ -22,6 +23,7 @@ class AuditState(TypedDict, total=False):
     security_output: AgentOutput
     performance_output: AgentOutput
     quality_output: AgentOutput
+    docs_output: AgentOutput
     report: AuditReport
     progress: Annotated[list[str], add]
 
@@ -35,6 +37,7 @@ class AuditGraph:
         self.security_agent = SecurityAgent(self.llm_client)
         self.performance_agent = PerformanceAgent()
         self.quality_agent = QualityAgent()
+        self.docs_agent = DocsAgent()
         self.synthesizer = SynthesizerAgent()
         self.graph = self._build_graph()
 
@@ -45,13 +48,15 @@ class AuditGraph:
         graph.add_node("security", self._security)
         graph.add_node("performance", self._performance)
         graph.add_node("quality", self._quality)
+        graph.add_node("docs", self._docs)
         graph.add_node("synthesize", self._synthesize)
         graph.set_entry_point("crawl")
         graph.add_edge("crawl", "chunk")
         graph.add_edge("chunk", "security")
         graph.add_edge("chunk", "performance")
         graph.add_edge("chunk", "quality")
-        graph.add_edge(["security", "performance", "quality"], "synthesize")
+        graph.add_edge("chunk", "docs")
+        graph.add_edge(["security", "performance", "quality", "docs"], "synthesize")
         graph.add_edge("synthesize", END)
         return graph.compile()
 
@@ -82,8 +87,15 @@ class AuditGraph:
             quality_output = await self.quality_agent.analyze(chunks)
             yield f"Quality Agent: found {len(quality_output.findings)} findings."
 
+            yield "Docs Agent: scanning README and public documentation..."
+            docs_output = await self.docs_agent.analyze(chunks)
+            yield f"Docs Agent: found {len(docs_output.findings)} findings."
+
             yield "Synthesizer Agent: ranking findings and formatting report..."
-            report = await self.synthesizer.synthesize(repo, [security_output, performance_output, quality_output])
+            report = await self.synthesizer.synthesize(
+                repo,
+                [security_output, performance_output, quality_output, docs_output],
+            )
             yield "Synthesizer Agent: final report generated."
             yield report
         finally:
@@ -109,10 +121,14 @@ class AuditGraph:
         output = await self.quality_agent.analyze(state["chunks"])
         return {"quality_output": output, "progress": [f"Quality Agent: found {len(output.findings)} findings."]}
 
+    async def _docs(self, state: AuditState) -> AuditState:
+        output = await self.docs_agent.analyze(state["chunks"])
+        return {"docs_output": output, "progress": [f"Docs Agent: found {len(output.findings)} findings."]}
+
     async def _synthesize(self, state: AuditState) -> AuditState:
         report = await self.synthesizer.synthesize(
             state["repo"],
-            [state["security_output"], state["performance_output"], state["quality_output"]],
+            [state["security_output"], state["performance_output"], state["quality_output"], state["docs_output"]],
         )
         self.crawler.cleanup(state["repo"])
         return {"report": report, "progress": ["Synthesizer Agent: final report generated."]}

@@ -37,6 +37,8 @@ SUPPORTED_EXTENSIONS = {
     ".rb": "Ruby",
 }
 
+README_FILENAMES = {"readme", "readme.md", "readme.rst", "readme.txt"}
+
 
 def validate_github_url(repo_url: str) -> str:
     parsed = urlparse(repo_url)
@@ -90,7 +92,8 @@ class RepoCrawler:
             if any(part in IGNORED_DIRS for part in rel_path.parts):
                 skipped += 1
                 continue
-            if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            readme_language = self._readme_language(rel_path)
+            if path.suffix.lower() not in SUPPORTED_EXTENSIONS and readme_language is None:
                 skipped += 1
                 continue
             size = path.stat().st_size
@@ -102,12 +105,13 @@ class RepoCrawler:
                 skipped += 1
                 continue
 
+            language = readme_language or SUPPORTED_EXTENSIONS[path.suffix.lower()]
             files.append(
                 SourceFile(
                     path=str(rel_path).replace("\\", "/"),
                     absolute_path=str(path),
                     size_bytes=size,
-                    language=SUPPORTED_EXTENSIONS[path.suffix.lower()],
+                    language=language,
                 )
             )
 
@@ -121,6 +125,11 @@ class RepoCrawler:
             skipped_files=skipped,
             warnings=warnings,
         )
+
+    def _readme_language(self, rel_path: Path) -> str | None:
+        if rel_path.name.lower() not in README_FILENAMES:
+            return None
+        return "Markdown" if rel_path.suffix.lower() == ".md" else "Documentation"
 
     def cleanup(self, scan_result: RepoScanResult | None) -> None:
         if scan_result is None:
