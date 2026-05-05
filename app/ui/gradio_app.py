@@ -1,3 +1,5 @@
+import os
+
 import gradio as gr
 
 from app.agents.graph import AuditGraph
@@ -5,38 +7,76 @@ from app.schemas import AuditReport
 from app.services.report_formatter import format_report_markdown
 
 
+EXAMPLE_REPOS = {
+    "Requests": "https://github.com/psf/requests",
+    "ItsDangerous": "https://github.com/pallets/itsdangerous",
+    "Flask": "https://github.com/pallets/flask",
+}
+
+
 async def analyze_repo(repo_url: str):
     if not repo_url.strip():
-        yield "Paste a public GitHub repository URL to start."
+        yield "Paste a public GitHub repository URL to start.", ""
         return
 
-    transcript: list[str] = []
+    progress: list[str] = []
+    report_markdown = ""
     try:
         async for event in AuditGraph().run_with_progress(repo_url.strip()):
             if isinstance(event, AuditReport):
-                transcript.append("")
-                transcript.append(format_report_markdown(event))
+                report_markdown = format_report_markdown(event)
             else:
-                transcript.append(event)
-            yield "\n".join(transcript)
+                progress.append(event)
+            yield "\n".join(progress), report_markdown
     except Exception as exc:
-        transcript.append(f"Audit failed: {exc}")
-        yield "\n".join(transcript)
+        progress.append(f"Audit failed: {exc}")
+        yield "\n".join(progress), report_markdown
+
+
+def choose_example(example_name: str) -> str:
+    return EXAMPLE_REPOS.get(example_name, "")
 
 
 def build_app() -> gr.Blocks:
     with gr.Blocks(title="SwarmAudit") as demo:
-        gr.Markdown("# SwarmAudit")
-        gr.Markdown("Paste any public GitHub URL. Get a structured AI code review in minutes.")
-        repo_url = gr.Textbox(
-            label="GitHub Repository URL",
-            placeholder="https://github.com/owner/repo",
+        gr.Markdown(
+            "# SwarmAudit\n"
+            "Paste a public GitHub URL and get a structured multi-agent audit report."
         )
-        analyze = gr.Button("Analyze")
-        output = gr.Markdown(label="Audit Report")
-        analyze.click(analyze_repo, inputs=repo_url, outputs=output)
+
+        with gr.Row():
+            repo_url = gr.Textbox(
+                label="GitHub Repository URL",
+                placeholder="https://github.com/owner/repo",
+                scale=4,
+            )
+            analyze = gr.Button("Analyze", variant="primary", scale=1)
+
+        example = gr.Dropdown(
+            label="Example repos",
+            choices=list(EXAMPLE_REPOS.keys()),
+            value=None,
+            interactive=True,
+        )
+        example.change(choose_example, inputs=example, outputs=repo_url)
+
+        with gr.Row():
+            progress_output = gr.Textbox(
+                label="Agent Progress",
+                lines=10,
+                interactive=False,
+            )
+            report_output = gr.Markdown(label="Audit Report")
+
+        analyze.click(analyze_repo, inputs=repo_url, outputs=[progress_output, report_output])
     return demo
 
 
+def launch_app() -> None:
+    server_name = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
+    server_port = int(os.getenv("PORT", os.getenv("GRADIO_SERVER_PORT", "7860")))
+    build_app().queue().launch(server_name=server_name, server_port=server_port)
+
+
 if __name__ == "__main__":
-    build_app().queue().launch()
+    launch_app()

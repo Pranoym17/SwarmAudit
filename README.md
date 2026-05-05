@@ -24,6 +24,12 @@ Run the FastAPI backend:
 uvicorn app.main:app --reload
 ```
 
+If port 8000 is busy on Windows, use:
+
+```bash
+uvicorn app.main:app --reload --port 8001
+```
+
 Health check:
 
 ```bash
@@ -35,6 +41,15 @@ Run the Gradio demo:
 ```bash
 python -m app.ui.gradio_app
 ```
+
+For Hugging Face Spaces-style startup:
+
+```bash
+python app.py
+```
+
+The Gradio app includes example repos, a live agent progress panel, and a structured markdown report panel.
+The launcher binds to `0.0.0.0` and uses `PORT` when provided, which matches hosted Gradio deployment expectations.
 
 ## Configuration
 
@@ -67,6 +82,10 @@ Reports preserve full finding totals while displaying a prioritized subset for r
 - Quality Agent: flags long functions, high branch density, large source sections, unresolved TODO/FIXME/HACK comments, and very short symbol names.
 - Docs Agent: flags incomplete README guidance and public Python symbols missing docstrings.
 - Synthesizer Agent: deduplicates findings, sorts by severity, and builds the final report.
+
+## Hugging Face Spaces
+
+SwarmAudit is ready to launch as a Gradio Space with the root `app.py` entrypoint. Keep `LLM_PROVIDER=mock` for a reliable public demo, then switch to `LLM_PROVIDER=vllm` when an AMD MI300X-hosted Qwen2.5-Coder endpoint is available.
 
 ## Tests
 
