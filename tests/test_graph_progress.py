@@ -10,7 +10,7 @@ from app.schemas import AuditReport
 @pytest.mark.anyio
 async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     source = tmp_path / "app.py"
-    source.write_text("API_KEY = '1234567890abcdef'\n", encoding="utf-8")
+    source.write_text("API_KEY = '1234567890abcdef'\nresponse = requests.get(url)\n", encoding="utf-8")
     graph = AuditGraph(Settings(max_files=10, max_file_size_kb=10, max_chars_per_chunk=1000))
 
     graph.crawler.clone_and_scan = lambda repo_url: graph.crawler.scan_local_repo(repo_url, tmp_path)
@@ -22,5 +22,8 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
 
     assert any("Crawler Agent" in event for event in events if isinstance(event, str))
     assert any("Security Agent" in event for event in events if isinstance(event, str))
+    assert any("Performance Agent" in event for event in events if isinstance(event, str))
     assert isinstance(events[-1], AuditReport)
-    assert len(events[-1].findings) == 1
+    assert len(events[-1].findings) == 2
+    assert "Security Agent" in events[-1].agents_run
+    assert "Performance Agent" in events[-1].agents_run
