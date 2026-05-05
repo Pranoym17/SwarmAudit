@@ -1,0 +1,1 @@
+"""SwarmAudit application package."""

@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+gradio
+gitpython
+pydantic
+pydantic-settings
+langgraph
+langchain-core
+httpx
+python-dotenv
+pytest
