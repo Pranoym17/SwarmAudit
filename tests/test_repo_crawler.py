@@ -1,6 +1,8 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+from git import GitCommandError
 
 from app.config import Settings
 from app.services.repo_crawler import RepoCrawler, validate_github_url
@@ -36,3 +38,37 @@ def test_scan_local_repo_includes_readme_for_docs_agent(tmp_path: Path):
 
     assert result.files[0].path == "README.md"
     assert result.files[0].language == "Markdown"
+
+
+def test_clone_and_scan_omits_gitpython_timeout_on_windows(tmp_path: Path):
+    crawler = RepoCrawler(Settings(max_files=10, max_file_size_kb=1, clone_base_dir=str(tmp_path / "clones")))
+
+    with patch("app.services.repo_crawler.os.name", "nt"), patch(
+        "app.services.repo_crawler.Repo.clone_from"
+    ) as clone_from, patch.object(
+        crawler,
+        "scan_local_repo",
+        return_value=crawler.scan_local_repo("https://github.com/example/project", tmp_path),
+    ):
+        crawler.clone_and_scan("https://github.com/example/project")
+
+    assert "kill_after_timeout" not in clone_from.call_args.kwargs
+    assert clone_from.call_args.kwargs["env"]["HTTPS_PROXY"] == ""
+    assert clone_from.call_args.kwargs["env"]["ALL_PROXY"] == ""
+
+
+def test_clone_and_scan_retries_schannel_failure_with_openssl(tmp_path: Path):
+    crawler = RepoCrawler(Settings(max_files=10, max_file_size_kb=1, clone_base_dir=str(tmp_path / "clones")))
+    schannel_error = GitCommandError("git clone", 128, stderr="schannel: AcquireCredentialsHandle failed")
+
+    with patch("app.services.repo_crawler.os.name", "nt"), patch(
+        "app.services.repo_crawler.Repo.clone_from",
+        side_effect=schannel_error,
+    ), patch.object(crawler, "_clone_repo_with_openssl") as clone_with_openssl, patch.object(
+        crawler,
+        "scan_local_repo",
+        return_value=crawler.scan_local_repo("https://github.com/example/project", tmp_path),
+    ):
+        crawler.clone_and_scan("https://github.com/example/project")
+
+    clone_with_openssl.assert_called_once()

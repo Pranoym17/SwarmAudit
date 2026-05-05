@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     max_file_size_kb: int = 250
     max_chars_per_chunk: int = 12000
     clone_timeout_seconds: int = 60
+    clone_base_dir: str = ".swarm_audit_tmp"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
