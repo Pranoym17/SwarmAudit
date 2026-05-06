@@ -178,5 +178,5 @@ The current code path is intentionally mock-first. The next inference phase is:
 ## Tests
 
 ```bash
-pytest
+python -m pytest
 ```

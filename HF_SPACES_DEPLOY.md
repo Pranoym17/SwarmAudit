@@ -6,7 +6,7 @@ Run these from the repo root:
 
 ```bash
 pip install -r requirements.txt
-pytest
+python -m pytest
 python app.py
 ```
 

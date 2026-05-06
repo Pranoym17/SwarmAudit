@@ -207,7 +207,7 @@ tempCodeRunnerFile.py
 .ruff_cache/
 
 # SwarmAudit local test artifacts
-.tmp_pytest/
+.tmp_pytest*/
 pytest-cache-files-*
 .swarm_audit_tmp/
 
