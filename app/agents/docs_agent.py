@@ -1,6 +1,9 @@
 import re
 
+from app.agents.llm_enrichment import LLMEnrichmentMixin
+from app.config import Settings
 from app.schemas import AgentOutput, CodeChunk, Finding, Severity
+from app.services.llm_client import LLMClient
 
 
 PYTHON_PUBLIC_DEF = re.compile(r"^(\s*)(async\s+def|def|class)\s+([A-Za-z][A-Za-z0-9_]*)")
@@ -9,8 +12,11 @@ README_TEST_TERMS = ("test", "pytest", "unittest")
 README_CONFIG_TERMS = ("config", "environment", ".env", "settings")
 
 
-class DocsAgent:
+class DocsAgent(LLMEnrichmentMixin):
     name = "Docs Agent"
+
+    def __init__(self, llm_client: LLMClient | None = None):
+        self.llm_client = llm_client or LLMClient(Settings())
 
     async def analyze(self, chunks: list[CodeChunk]) -> AgentOutput:
         findings: list[Finding] = []
@@ -37,10 +43,16 @@ class DocsAgent:
                 )
             )
 
+        llm_output = await self._run_llm_enrichment(
+            chunks,
+            "Review these code and README chunks for high-confidence documentation gaps, unclear setup instructions, missing usage guidance, or missing public API documentation.",
+        )
+        findings.extend(llm_output.findings)
+
         return AgentOutput(
             agent_name=self.name,
             findings=findings,
-            metadata={"chunks_scanned": len(chunks), "mode": "static-rules"},
+            metadata=self._llm_metadata(chunks, llm_output),
         )
 
     def _scan_readme(self, chunk: CodeChunk) -> list[Finding]:

@@ -103,7 +103,7 @@ After switching to vLLM, use the same tab to verify:
 - A small chat completion succeeds.
 - The configured model name is available.
 
-Only set `ENABLE_LLM_ENRICHMENT=true` after diagnostics pass. If the vLLM endpoint fails, SwarmAudit still runs in static-rule mode when enrichment is disabled.
+Only set `ENABLE_LLM_ENRICHMENT=true` after diagnostics pass. If the vLLM endpoint fails, SwarmAudit still runs in static-rule mode when enrichment is disabled. All four analysis agents support optional enrichment and validate LLM output before merging findings.
 
 ## Benchmark Tab
 

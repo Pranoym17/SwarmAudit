@@ -1,6 +1,9 @@
 import re
 
+from app.agents.llm_enrichment import LLMEnrichmentMixin
+from app.config import Settings
 from app.schemas import AgentOutput, CodeChunk, Finding, Severity
+from app.services.llm_client import LLMClient
 
 
 PYTHON_DEF = re.compile(r"^\s*(async\s+def|def|class)\s+([A-Za-z_][A-Za-z0-9_]*)")
@@ -16,18 +19,27 @@ MAX_BRANCHES_PER_CHUNK = 25
 MIN_MEANINGFUL_NAME_LENGTH = 3
 
 
-class QualityAgent:
+class QualityAgent(LLMEnrichmentMixin):
     name = "Quality Agent"
+
+    def __init__(self, llm_client: LLMClient | None = None):
+        self.llm_client = llm_client or LLMClient(Settings())
 
     async def analyze(self, chunks: list[CodeChunk]) -> AgentOutput:
         findings: list[Finding] = []
         for chunk in chunks:
             findings.extend(self._scan_chunk(chunk))
 
+        llm_output = await self._run_llm_enrichment(
+            chunks,
+            "Review these code chunks for high-confidence code quality issues such as overly complex structure, risky abstractions, poor naming, or maintainability problems.",
+        )
+        findings.extend(llm_output.findings)
+
         return AgentOutput(
             agent_name=self.name,
             findings=findings,
-            metadata={"chunks_scanned": len(chunks), "mode": "static-rules"},
+            metadata=self._llm_metadata(chunks, llm_output),
         )
 
     def _scan_chunk(self, chunk: CodeChunk) -> list[Finding]:

@@ -1,6 +1,9 @@
 import re
 
+from app.agents.llm_enrichment import LLMEnrichmentMixin
+from app.config import Settings
 from app.schemas import AgentOutput, CodeChunk, Finding, Severity
+from app.services.llm_client import LLMClient
 
 
 REQUEST_WITHOUT_TIMEOUT = re.compile(r"\brequests\.(get|post|put|patch|delete)\s*\((?!.*\btimeout\s*=)")
@@ -9,18 +12,27 @@ PYTHON_LOOP = re.compile(r"^(\s*)(for|while)\b")
 PYTHON_FILE_READ = re.compile(r"\b(open\s*\(|Path\s*\([^)]*\)\.read_(text|bytes)\s*\()")
 
 
-class PerformanceAgent:
+class PerformanceAgent(LLMEnrichmentMixin):
     name = "Performance Agent"
+
+    def __init__(self, llm_client: LLMClient | None = None):
+        self.llm_client = llm_client or LLMClient(Settings())
 
     async def analyze(self, chunks: list[CodeChunk]) -> AgentOutput:
         findings: list[Finding] = []
         for chunk in chunks:
             findings.extend(self._scan_chunk(chunk))
 
+        llm_output = await self._run_llm_enrichment(
+            chunks,
+            "Review these code chunks for high-confidence performance issues such as algorithmic bottlenecks, blocking I/O, inefficient repeated work, or expensive hot paths.",
+        )
+        findings.extend(llm_output.findings)
+
         return AgentOutput(
             agent_name=self.name,
             findings=findings,
-            metadata={"chunks_scanned": len(chunks), "mode": "static-rules"},
+            metadata=self._llm_metadata(chunks, llm_output),
         )
 
     def _scan_chunk(self, chunk: CodeChunk) -> list[Finding]:

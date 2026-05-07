@@ -138,7 +138,7 @@ ENABLE_LLM_ENRICHMENT=false
 ```
 
 Turn it on only after the Diagnostics tab confirms the vLLM endpoint is healthy.
-When enabled, SwarmAudit keeps static rules as deterministic guardrails and uses the LLM only to enrich selected chunks with additional validated findings.
+When enabled, SwarmAudit keeps static rules as deterministic guardrails and uses the LLM only to enrich selected chunks with additional validated findings. Security, Performance, Quality, and Docs agents all use the same safe enrichment path and fall back to static findings if the LLM fails.
 
 Key safety limits:
 
@@ -191,7 +191,7 @@ The current code path is intentionally mock-first. The next inference phase is:
 1. Start a Qwen2.5-Coder vLLM server on AMD Developer Cloud.
 2. Expose an OpenAI-compatible `/v1/chat/completions` endpoint.
 3. Set `LLM_PROVIDER=vllm`, `LLM_BASE_URL`, and `LLM_MODEL`.
-4. Add LLM enrichment to agent findings while keeping static rules as deterministic guardrails.
+4. Enable LLM enrichment for agent findings while keeping static rules as deterministic guardrails.
 5. Add a benchmark tab with MI300X latency and throughput numbers.
 
 The Benchmark tab is already scaffolded. In mock mode it validates the UI path; in vLLM mode it measures endpoint latency and provides a place to record MI300X numbers for the final demo.

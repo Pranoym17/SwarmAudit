@@ -35,9 +35,9 @@ class AuditGraph:
         self.chunker = Chunker(self.settings)
         self.llm_client = LLMClient(self.settings)
         self.security_agent = SecurityAgent(self.llm_client)
-        self.performance_agent = PerformanceAgent()
-        self.quality_agent = QualityAgent()
-        self.docs_agent = DocsAgent()
+        self.performance_agent = PerformanceAgent(self.llm_client)
+        self.quality_agent = QualityAgent(self.llm_client)
+        self.docs_agent = DocsAgent(self.llm_client)
         self.synthesizer = SynthesizerAgent()
         self.graph = self._build_graph()
 
