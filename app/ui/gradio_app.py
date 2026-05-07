@@ -3,7 +3,9 @@ import os
 import gradio as gr
 
 from app.agents.graph import AuditGraph
+from app.config import get_settings
 from app.schemas import AuditReport
+from app.services.llm_client import LLMClient
 from app.services.report_formatter import format_report_markdown
 
 
@@ -37,6 +39,30 @@ def choose_example(example_name: str) -> str:
     return EXAMPLE_REPOS.get(example_name, "")
 
 
+async def run_llm_diagnostics() -> str:
+    health = await LLMClient(get_settings()).health_check()
+    lines = [
+        "# LLM Diagnostics",
+        "",
+        f"- Provider: `{health.provider}`",
+        f"- Model: `{health.model}`",
+        f"- Base URL: `{health.base_url}`",
+        f"- Status: `{'OK' if health.ok else 'FAILED'}`",
+    ]
+
+    if health.latency_ms is not None:
+        lines.append(f"- Latency: `{health.latency_ms} ms`")
+    if health.models:
+        lines.extend(["", "## Models", ""])
+        lines.extend(f"- `{model}`" for model in health.models)
+    if health.completion_preview:
+        lines.extend(["", "## Completion Preview", "", health.completion_preview])
+    if health.error:
+        lines.extend(["", "## Error", "", f"```text\n{health.error}\n```"])
+
+    return "\n".join(lines)
+
+
 def build_app() -> gr.Blocks:
     with gr.Blocks(title="SwarmAudit") as demo:
         gr.Markdown(
@@ -44,31 +70,38 @@ def build_app() -> gr.Blocks:
             "Paste a public GitHub URL and get a structured multi-agent audit report."
         )
 
-        with gr.Row():
-            repo_url = gr.Textbox(
-                label="GitHub Repository URL",
-                placeholder="https://github.com/owner/repo",
-                scale=4,
+        with gr.Tab("Audit"):
+            with gr.Row():
+                repo_url = gr.Textbox(
+                    label="GitHub Repository URL",
+                    placeholder="https://github.com/owner/repo",
+                    scale=4,
+                )
+                analyze = gr.Button("Analyze", variant="primary", scale=1)
+
+            example = gr.Dropdown(
+                label="Example repos",
+                choices=list(EXAMPLE_REPOS.keys()),
+                value=None,
+                interactive=True,
             )
-            analyze = gr.Button("Analyze", variant="primary", scale=1)
+            example.change(choose_example, inputs=example, outputs=repo_url)
 
-        example = gr.Dropdown(
-            label="Example repos",
-            choices=list(EXAMPLE_REPOS.keys()),
-            value=None,
-            interactive=True,
-        )
-        example.change(choose_example, inputs=example, outputs=repo_url)
+            with gr.Row():
+                progress_output = gr.Textbox(
+                    label="Agent Progress",
+                    lines=10,
+                    interactive=False,
+                )
+                report_output = gr.Markdown(label="Audit Report")
 
-        with gr.Row():
-            progress_output = gr.Textbox(
-                label="Agent Progress",
-                lines=10,
-                interactive=False,
-            )
-            report_output = gr.Markdown(label="Audit Report")
+            analyze.click(analyze_repo, inputs=repo_url, outputs=[progress_output, report_output])
 
-        analyze.click(analyze_repo, inputs=repo_url, outputs=[progress_output, report_output])
+        with gr.Tab("Diagnostics"):
+            gr.Markdown("Check the configured LLM backend before switching from mock mode to vLLM.")
+            diagnostics_button = gr.Button("Test LLM Connection", variant="primary")
+            diagnostics_output = gr.Markdown()
+            diagnostics_button.click(run_llm_diagnostics, outputs=diagnostics_output)
     return demo
 
 

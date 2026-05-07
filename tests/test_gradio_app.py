@@ -1,7 +1,9 @@
 import runpy
 from pathlib import Path
 
-from app.ui.gradio_app import build_app, choose_example, launch_app
+import pytest
+
+from app.ui.gradio_app import build_app, choose_example, launch_app, run_llm_diagnostics
 
 
 def test_choose_example_returns_repo_url():
@@ -43,3 +45,12 @@ def test_launch_app_uses_spaces_friendly_defaults(monkeypatch):
     launch_app()
 
     assert calls == {"server_name": "0.0.0.0", "server_port": 7860}
+
+
+@pytest.mark.anyio
+async def test_run_llm_diagnostics_returns_provider_status():
+    markdown = await run_llm_diagnostics()
+
+    assert "LLM Diagnostics" in markdown
+    assert "Provider: `mock`" in markdown
+    assert "Status: `OK`" in markdown

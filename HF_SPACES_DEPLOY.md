@@ -87,6 +87,21 @@ Expected behavior:
 - Synthesizer returns a report.
 - Report shows a prioritized subset while preserving total finding counts.
 
+## LLM Diagnostics
+
+The Space includes a Diagnostics tab. In mock mode, it should show:
+
+```text
+Provider: mock
+Status: OK
+```
+
+After switching to vLLM, use the same tab to verify:
+
+- `/v1/models` responds.
+- A small chat completion succeeds.
+- The configured model name is available.
+
 ## If The Space Fails
 
 Check the Space logs first. Common issues:

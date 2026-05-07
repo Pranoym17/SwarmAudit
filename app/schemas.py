@@ -75,3 +75,14 @@ class AuditReport(BaseModel):
 class AuditProgress(BaseModel):
     message: str
     stage: str
+
+
+class LLMHealth(BaseModel):
+    provider: str
+    model: str
+    base_url: str
+    ok: bool
+    latency_ms: float | None = None
+    models: list[str] = Field(default_factory=list)
+    completion_preview: str | None = None
+    error: str | None = None

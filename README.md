@@ -28,7 +28,9 @@ GitHub URL -> Crawler -> Chunker -> [Security Agent + Performance Agent + Qualit
 Working locally:
 
 - Gradio UI with live agent progress
+- Gradio Diagnostics tab for mock/vLLM connection checks
 - FastAPI `/health` and `/audit` endpoints
+- FastAPI `/llm/health` endpoint
 - GitHub clone and repo scan on public repos
 - Four analysis agents plus synthesizer
 - Prioritized report display with full raw finding totals preserved
@@ -88,6 +90,12 @@ Health check:
 curl http://127.0.0.1:8000/health
 ```
 
+LLM health check:
+
+```bash
+curl http://127.0.0.1:8000/llm/health
+```
+
 Audit endpoint:
 
 ```bash
@@ -120,6 +128,7 @@ LLM_PROVIDER=mock
 ```
 
 Later, set `LLM_PROVIDER=vllm` and point `LLM_BASE_URL` at an OpenAI-compatible vLLM endpoint running Qwen2.5-Coder.
+Use the Gradio Diagnostics tab or `/llm/health` endpoint to confirm vLLM connectivity before running audits.
 
 Key safety limits:
 
