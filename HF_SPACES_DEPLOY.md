@@ -105,6 +105,10 @@ After switching to vLLM, use the same tab to verify:
 
 Only set `ENABLE_LLM_ENRICHMENT=true` after diagnostics pass. If the vLLM endpoint fails, SwarmAudit still runs in static-rule mode when enrichment is disabled.
 
+## Benchmark Tab
+
+The Space includes a Benchmark tab. In mock mode, it should return a quick successful result. After switching to vLLM on AMD MI300X, use it to capture endpoint latency and include the numbers in the final README/demo.
+
 ## If The Space Fails
 
 Check the Space logs first. Common issues:

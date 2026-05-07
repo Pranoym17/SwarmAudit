@@ -86,3 +86,17 @@ class LLMHealth(BaseModel):
     models: list[str] = Field(default_factory=list)
     completion_preview: str | None = None
     error: str | None = None
+
+
+class BenchmarkResult(BaseModel):
+    provider: str
+    model: str
+    backend: str
+    hardware: str
+    ok: bool
+    latency_ms: float | None = None
+    prompt_chars: int
+    completion_chars: int = 0
+    chars_per_second: float | None = None
+    completion_preview: str | None = None
+    error: str | None = None

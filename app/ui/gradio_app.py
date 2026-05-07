@@ -6,6 +6,7 @@ from app.agents.graph import AuditGraph
 from app.config import get_settings
 from app.schemas import AuditReport
 from app.services.llm_client import LLMClient
+from app.services.benchmark import BenchmarkService
 from app.services.report_formatter import format_report_markdown
 
 
@@ -63,6 +64,41 @@ async def run_llm_diagnostics() -> str:
     return "\n".join(lines)
 
 
+async def run_benchmark() -> str:
+    result = await BenchmarkService(get_settings()).run_llm_benchmark()
+    lines = [
+        "# LLM Benchmark",
+        "",
+        f"- Provider: `{result.provider}`",
+        f"- Backend: `{result.backend}`",
+        f"- Model: `{result.model}`",
+        f"- Hardware: `{result.hardware}`",
+        f"- Status: `{'OK' if result.ok else 'FAILED'}`",
+        f"- Prompt chars: `{result.prompt_chars}`",
+        f"- Completion chars: `{result.completion_chars}`",
+    ]
+
+    if result.latency_ms is not None:
+        lines.append(f"- Latency: `{result.latency_ms} ms`")
+    if result.chars_per_second is not None:
+        lines.append(f"- Approx chars/sec: `{result.chars_per_second}`")
+    if result.completion_preview:
+        lines.extend(["", "## Completion Preview", "", result.completion_preview])
+    if result.error:
+        lines.extend(["", "## Error", "", f"```text\n{result.error}\n```"])
+
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+            "This scaffold uses character counts until a real vLLM endpoint exposes token usage. "
+            "When running on AMD MI300X, record latency/tokens-per-second here for the final demo.",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def build_app() -> gr.Blocks:
     with gr.Blocks(title="SwarmAudit") as demo:
         gr.Markdown(
@@ -102,6 +138,12 @@ def build_app() -> gr.Blocks:
             diagnostics_button = gr.Button("Test LLM Connection", variant="primary")
             diagnostics_output = gr.Markdown()
             diagnostics_button.click(run_llm_diagnostics, outputs=diagnostics_output)
+
+        with gr.Tab("Benchmark"):
+            gr.Markdown("Run a small LLM timing probe. In mock mode this validates the benchmark UI; in vLLM mode it measures endpoint latency.")
+            benchmark_button = gr.Button("Run Benchmark", variant="primary")
+            benchmark_output = gr.Markdown()
+            benchmark_button.click(run_benchmark, outputs=benchmark_output)
     return demo
 
 

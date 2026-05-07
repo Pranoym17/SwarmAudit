@@ -29,6 +29,7 @@ Working locally:
 
 - Gradio UI with live agent progress
 - Gradio Diagnostics tab for mock/vLLM connection checks
+- Gradio Benchmark tab scaffold for mock/vLLM latency probes
 - FastAPI `/health` and `/audit` endpoints
 - FastAPI `/llm/health` endpoint
 - GitHub clone and repo scan on public repos
@@ -192,6 +193,8 @@ The current code path is intentionally mock-first. The next inference phase is:
 3. Set `LLM_PROVIDER=vllm`, `LLM_BASE_URL`, and `LLM_MODEL`.
 4. Add LLM enrichment to agent findings while keeping static rules as deterministic guardrails.
 5. Add a benchmark tab with MI300X latency and throughput numbers.
+
+The Benchmark tab is already scaffolded. In mock mode it validates the UI path; in vLLM mode it measures endpoint latency and provides a place to record MI300X numbers for the final demo.
 
 ## Tests
 
