@@ -31,14 +31,7 @@ class LLMClient:
             "temperature": 0.1,
             "response_format": {"type": "json_object"},
         }
-        headers = {"Authorization": f"Bearer {self.settings.llm_api_key}"}
-        async with httpx.AsyncClient(timeout=120) as client:
-            response = await client.post(
-                f"{self.settings.llm_base_url.rstrip('/')}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            response.raise_for_status()
+        response = await self._client_post("/chat/completions", payload)
         content = response.json()["choices"][0]["message"]["content"]
         return json.loads(content)
 
@@ -124,7 +117,7 @@ class LLMClient:
 
     async def _client_post(self, path: str, payload: dict[str, Any]) -> httpx.Response:
         headers = {"Authorization": f"Bearer {self.settings.llm_api_key}"}
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=self.settings.llm_timeout_seconds) as client:
             response = await client.post(
                 f"{self.settings.llm_base_url.rstrip('/')}{path}",
                 json=payload,

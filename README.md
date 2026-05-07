@@ -130,6 +130,15 @@ LLM_PROVIDER=mock
 Later, set `LLM_PROVIDER=vllm` and point `LLM_BASE_URL` at an OpenAI-compatible vLLM endpoint running Qwen2.5-Coder.
 Use the Gradio Diagnostics tab or `/llm/health` endpoint to confirm vLLM connectivity before running audits.
 
+LLM enrichment is off by default:
+
+```text
+ENABLE_LLM_ENRICHMENT=false
+```
+
+Turn it on only after the Diagnostics tab confirms the vLLM endpoint is healthy.
+When enabled, SwarmAudit keeps static rules as deterministic guardrails and uses the LLM only to enrich selected chunks with additional validated findings.
+
 Key safety limits:
 
 ```text

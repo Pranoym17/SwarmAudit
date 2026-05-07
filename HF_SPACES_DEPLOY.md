@@ -63,6 +63,7 @@ LLM_PROVIDER=vllm
 LLM_BASE_URL=http://YOUR_VLLM_ENDPOINT/v1
 LLM_API_KEY=not-needed-if-your-endpoint-does-not-require-one
 LLM_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct
+ENABLE_LLM_ENRICHMENT=true
 ```
 
 ## First Hosted Smoke Test
@@ -101,6 +102,8 @@ After switching to vLLM, use the same tab to verify:
 - `/v1/models` responds.
 - A small chat completion succeeds.
 - The configured model name is available.
+
+Only set `ENABLE_LLM_ENRICHMENT=true` after diagnostics pass. If the vLLM endpoint fails, SwarmAudit still runs in static-rule mode when enrichment is disabled.
 
 ## If The Space Fails
 
