@@ -3,7 +3,14 @@ from pathlib import Path
 
 import pytest
 
-from app.ui.gradio_app import build_app, choose_example, launch_app, run_benchmark, run_llm_diagnostics
+from app.ui.gradio_app import (
+    analyze_repo,
+    build_app,
+    choose_example,
+    launch_app,
+    run_benchmark,
+    run_llm_diagnostics,
+)
 
 
 def test_choose_example_returns_repo_url():
@@ -63,3 +70,27 @@ async def test_run_benchmark_returns_mock_result():
     assert "LLM Benchmark" in markdown
     assert "Provider: `mock`" in markdown
     assert "Status: `OK`" in markdown
+
+
+@pytest.mark.anyio
+async def test_analyze_repo_empty_input_clears_report_exports():
+    result = await anext(analyze_repo(" "))
+
+    assert result == ("Paste a public GitHub repository URL to start.", "", None, None)
+
+
+@pytest.mark.anyio
+async def test_analyze_repo_failure_clears_report_exports(monkeypatch):
+    class FakeAuditGraph:
+        async def run_with_progress(self, repo_url: str):
+            yield "Crawler Agent: cloning and mapping repository..."
+            raise RuntimeError("clone failed")
+
+    monkeypatch.setattr("app.ui.gradio_app.AuditGraph", FakeAuditGraph)
+
+    updates = []
+    async for update in analyze_repo("https://github.com/example/project"):
+        updates.append(update)
+
+    assert updates[-1][0].endswith("Audit failed: clone failed")
+    assert updates[-1][1:] == ("", None, None)

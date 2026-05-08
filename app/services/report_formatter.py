@@ -1,3 +1,6 @@
+import tempfile
+from pathlib import Path
+
 from app.schemas import AuditReport, Severity
 
 
@@ -53,3 +56,16 @@ def format_report_markdown(report: AuditReport) -> str:
         )
 
     return "\n".join(lines)
+
+
+def write_report_exports(report: AuditReport, output_dir: Path | None = None) -> tuple[str, str]:
+    export_dir = output_dir or Path(tempfile.mkdtemp(prefix="swarm_audit_export_"))
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    markdown_path = export_dir / "swarm_audit_report.md"
+    json_path = export_dir / "swarm_audit_report.json"
+
+    markdown_path.write_text(format_report_markdown(report), encoding="utf-8")
+    json_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
+
+    return str(markdown_path), str(json_path)

@@ -7,7 +7,7 @@ from app.config import get_settings
 from app.schemas import AuditReport
 from app.services.llm_client import LLMClient
 from app.services.benchmark import BenchmarkService
-from app.services.report_formatter import format_report_markdown
+from app.services.report_formatter import format_report_markdown, write_report_exports
 
 
 EXAMPLE_REPOS = {
@@ -19,21 +19,24 @@ EXAMPLE_REPOS = {
 
 async def analyze_repo(repo_url: str):
     if not repo_url.strip():
-        yield "Paste a public GitHub repository URL to start.", ""
+        yield "Paste a public GitHub repository URL to start.", "", None, None
         return
 
     progress: list[str] = []
     report_markdown = ""
+    markdown_export = None
+    json_export = None
     try:
         async for event in AuditGraph().run_with_progress(repo_url.strip()):
             if isinstance(event, AuditReport):
                 report_markdown = format_report_markdown(event)
+                markdown_export, json_export = write_report_exports(event)
             else:
                 progress.append(event)
-            yield "\n".join(progress), report_markdown
+            yield "\n".join(progress), report_markdown, markdown_export, json_export
     except Exception as exc:
         progress.append(f"Audit failed: {exc}")
-        yield "\n".join(progress), report_markdown
+        yield "\n".join(progress), "", None, None
 
 
 def choose_example(example_name: str) -> str:
@@ -131,7 +134,15 @@ def build_app() -> gr.Blocks:
                 )
                 report_output = gr.Markdown(label="Audit Report")
 
-            analyze.click(analyze_repo, inputs=repo_url, outputs=[progress_output, report_output])
+            with gr.Row():
+                markdown_export = gr.File(label="Download Markdown Report")
+                json_export = gr.File(label="Download JSON Report")
+
+            analyze.click(
+                analyze_repo,
+                inputs=repo_url,
+                outputs=[progress_output, report_output, markdown_export, json_export],
+            )
 
         with gr.Tab("Diagnostics"):
             gr.Markdown("Check the configured LLM backend before switching from mock mode to vLLM.")

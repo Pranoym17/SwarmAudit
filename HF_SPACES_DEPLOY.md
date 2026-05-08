@@ -54,7 +54,10 @@ For the public mock demo:
 
 ```text
 LLM_PROVIDER=mock
+ENABLE_LLM_ENRICHMENT=false
 ```
+
+Keep the public Space in mock mode unless the vLLM endpoint is stable and meant to stay online. Do not expose private API keys in the README or app UI; use Space secrets for any real endpoint key.
 
 For a later AMD/vLLM deployment:
 
@@ -63,7 +66,8 @@ LLM_PROVIDER=vllm
 LLM_BASE_URL=http://YOUR_VLLM_ENDPOINT/v1
 LLM_API_KEY=not-needed-if-your-endpoint-does-not-require-one
 LLM_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct
-ENABLE_LLM_ENRICHMENT=true
+ENABLE_LLM_ENRICHMENT=false
+MAX_LLM_CHUNKS=2
 ```
 
 ## First Hosted Smoke Test
@@ -105,9 +109,20 @@ After switching to vLLM, use the same tab to verify:
 
 Only set `ENABLE_LLM_ENRICHMENT=true` after diagnostics pass. If the vLLM endpoint fails, SwarmAudit still runs in static-rule mode when enrichment is disabled. All four analysis agents support optional enrichment and validate LLM output before merging findings.
 
+If the hosted vLLM endpoint is temporary for judging, switch the Space back to:
+
+```text
+LLM_PROVIDER=mock
+ENABLE_LLM_ENRICHMENT=false
+```
+
+after capturing the demo proof.
+
 ## Benchmark Tab
 
 The Space includes a Benchmark tab. In mock mode, it should return a quick successful result. After switching to vLLM on AMD MI300X, use it to capture endpoint latency and include the numbers in the final README/demo.
+
+Use the AMD runbook for the lowest-credit test order: [`AMD_VLLM_RUNBOOK.md`](AMD_VLLM_RUNBOOK.md).
 
 ## If The Space Fails
 

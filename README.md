@@ -35,6 +35,7 @@ Working locally:
 - GitHub clone and repo scan on public repos
 - Four analysis agents plus synthesizer
 - Prioritized report display with full raw finding totals preserved
+- Markdown and JSON report downloads
 - Hugging Face Spaces-style `app.py` entrypoint
 
 Smoke-tested repos:
@@ -117,7 +118,7 @@ For Hugging Face Spaces-style startup:
 python app.py
 ```
 
-The Gradio app includes example repos, a live agent progress panel, and a structured markdown report panel.
+The Gradio app includes example repos, a live agent progress panel, a structured markdown report panel, and Markdown/JSON report downloads.
 The launcher binds to `0.0.0.0` and uses `PORT` when provided, which matches hosted Gradio deployment expectations.
 
 ## Configuration
@@ -139,6 +140,17 @@ ENABLE_LLM_ENRICHMENT=false
 
 Turn it on only after the Diagnostics tab confirms the vLLM endpoint is healthy.
 When enabled, SwarmAudit keeps static rules as deterministic guardrails and uses the LLM only to enrich selected chunks with additional validated findings. Security, Performance, Quality, and Docs agents all use the same safe enrichment path and fall back to static findings if the LLM fails.
+
+For the first AMD credit-backed test, keep enrichment off until diagnostics pass, then use conservative limits:
+
+```text
+LLM_PROVIDER=vllm
+ENABLE_LLM_ENRICHMENT=true
+MAX_FILES=100
+MAX_FILE_SIZE_KB=150
+MAX_CHARS_PER_CHUNK=8000
+MAX_LLM_CHUNKS=2
+```
 
 Key safety limits:
 
@@ -176,6 +188,7 @@ Reports preserve full finding totals while displaying a prioritized subset for r
 SwarmAudit is ready to launch as a Gradio Space with the root `app.py` entrypoint. Keep `LLM_PROVIDER=mock` for a reliable public demo, then switch to `LLM_PROVIDER=vllm` when an AMD MI300X-hosted Qwen2.5-Coder endpoint is available.
 
 See [`HF_SPACES_DEPLOY.md`](HF_SPACES_DEPLOY.md) for the deployment checklist.
+See [`AMD_VLLM_RUNBOOK.md`](AMD_VLLM_RUNBOOK.md) for the credit-safe AMD/vLLM setup flow.
 
 Recommended Space settings:
 
@@ -186,13 +199,14 @@ Recommended Space settings:
 
 ## AMD MI300X Roadmap
 
-The current code path is intentionally mock-first. The next inference phase is:
+The current code path is intentionally mock-first, so the public demo remains reliable even without GPU access. The AMD/vLLM path is HTTP-only: no vLLM package is required in this app, and no code changes should be needed after the endpoint is available.
 
 1. Start a Qwen2.5-Coder vLLM server on AMD Developer Cloud.
-2. Expose an OpenAI-compatible `/v1/chat/completions` endpoint.
-3. Set `LLM_PROVIDER=vllm`, `LLM_BASE_URL`, and `LLM_MODEL`.
-4. Enable LLM enrichment for agent findings while keeping static rules as deterministic guardrails.
-5. Add a benchmark tab with MI300X latency and throughput numbers.
+2. Expose OpenAI-compatible `/v1/models` and `/v1/chat/completions` endpoints.
+3. Set `LLM_PROVIDER=vllm`, `LLM_BASE_URL`, `LLM_API_KEY`, and `LLM_MODEL`.
+4. Run Diagnostics before enabling LLM enrichment.
+5. Enable enrichment with `MAX_LLM_CHUNKS=2` for the first credit-safe audits.
+6. Run the Benchmark tab and record MI300X latency/throughput numbers.
 
 The Benchmark tab is already scaffolded. In mock mode it validates the UI path; in vLLM mode it measures endpoint latency and provides a place to record MI300X numbers for the final demo.
 
