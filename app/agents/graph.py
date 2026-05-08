@@ -6,8 +6,10 @@ from typing import Annotated, Protocol, TypedDict
 from langgraph.graph import END, StateGraph
 
 from app.agents.config_agent import ConfigAgent
+from app.agents.cuda_migration_agent import CudaMigrationAgent
 from app.agents.docs_agent import DocsAgent
 from app.agents.error_handling_agent import ErrorHandlingAgent
+from app.agents.observability_agent import ObservabilityAgent
 from app.agents.performance_agent import PerformanceAgent
 from app.agents.quality_agent import QualityAgent
 from app.agents.security_agent import SecurityAgent
@@ -45,6 +47,8 @@ class AuditState(TypedDict, total=False):
     docs_output: AgentOutput
     config_output: AgentOutput
     error_handling_output: AgentOutput
+    observability_output: AgentOutput
+    cuda_migration_output: AgentOutput
     report: AuditReport
     progress: Annotated[list[str], add]
 
@@ -102,6 +106,20 @@ class AuditGraph:
                 progress_label="Error Handling Agent",
                 start_message="Error Handling Agent: scanning resilience and failure paths...",
                 agent=ErrorHandlingAgent(),
+            ),
+            AnalysisAgentSpec(
+                node_name="observability",
+                state_key="observability_output",
+                progress_label="Observability Agent",
+                start_message="Observability Agent: scanning logs, health checks, and telemetry gaps...",
+                agent=ObservabilityAgent(),
+            ),
+            AnalysisAgentSpec(
+                node_name="cuda_migration",
+                state_key="cuda_migration_output",
+                progress_label="CUDA-to-ROCm Agent",
+                start_message="CUDA-to-ROCm Agent: scanning NVIDIA-specific GPU assumptions...",
+                agent=CudaMigrationAgent(),
             ),
         ]
 

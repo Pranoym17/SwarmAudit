@@ -17,6 +17,8 @@ def test_audit_graph_exposes_current_agents_through_registry():
         "docs",
         "config",
         "error_handling",
+        "observability",
+        "cuda_migration",
     ]
     assert [spec.state_key for spec in graph.analysis_agents] == [
         "security_output",
@@ -25,6 +27,8 @@ def test_audit_graph_exposes_current_agents_through_registry():
         "docs_output",
         "config_output",
         "error_handling_output",
+        "observability_output",
+        "cuda_migration_output",
     ]
     assert [spec.agent.name for spec in graph.analysis_agents] == [
         "Security Agent",
@@ -33,6 +37,8 @@ def test_audit_graph_exposes_current_agents_through_registry():
         "Docs Agent",
         "Config Agent",
         "Error Handling Agent",
+        "Observability Agent",
+        "CUDA-to-ROCm Agent",
     ]
 
 
@@ -60,6 +66,8 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     assert any("Docs Agent" in event for event in events if isinstance(event, str))
     assert any("Config Agent" in event for event in events if isinstance(event, str))
     assert any("Error Handling Agent" in event for event in events if isinstance(event, str))
+    assert any("Observability Agent" in event for event in events if isinstance(event, str))
+    assert any("CUDA-to-ROCm Agent" in event for event in events if isinstance(event, str))
     assert isinstance(events[-1], AuditReport)
     assert len(events[-1].findings) >= 2
     assert any(finding.agent_source == "Error Handling Agent" for finding in events[-1].findings)
@@ -69,3 +77,5 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     assert "Docs Agent" in events[-1].agents_run
     assert "Config Agent" in events[-1].agents_run
     assert "Error Handling Agent" in events[-1].agents_run
+    assert "Observability Agent" in events[-1].agents_run
+    assert "CUDA-to-ROCm Agent" in events[-1].agents_run
