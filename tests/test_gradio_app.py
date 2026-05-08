@@ -8,6 +8,7 @@ from app.ui.gradio_app import (
     build_app,
     choose_example,
     launch_app,
+    render_workspace_header,
     run_benchmark,
     run_llm_diagnostics,
 )
@@ -25,6 +26,14 @@ def test_build_app_creates_gradio_blocks():
     demo = build_app()
 
     assert demo is not None
+
+
+def test_render_workspace_header_contains_product_and_readiness_signals():
+    html = render_workspace_header()
+
+    assert "SwarmAudit" in html
+    assert "Multi-agent code review workspace" in html
+    assert "vLLM" in html
 
 
 def test_root_app_py_exposes_demo_for_spaces():
