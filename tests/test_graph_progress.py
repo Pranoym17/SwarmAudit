@@ -10,13 +10,21 @@ from app.schemas import AuditReport
 def test_audit_graph_exposes_current_agents_through_registry():
     graph = AuditGraph(Settings())
 
-    assert [spec.node_name for spec in graph.analysis_agents] == ["security", "performance", "quality", "docs", "config"]
+    assert [spec.node_name for spec in graph.analysis_agents] == [
+        "security",
+        "performance",
+        "quality",
+        "docs",
+        "config",
+        "error_handling",
+    ]
     assert [spec.state_key for spec in graph.analysis_agents] == [
         "security_output",
         "performance_output",
         "quality_output",
         "docs_output",
         "config_output",
+        "error_handling_output",
     ]
     assert [spec.agent.name for spec in graph.analysis_agents] == [
         "Security Agent",
@@ -24,6 +32,7 @@ def test_audit_graph_exposes_current_agents_through_registry():
         "Quality Agent",
         "Docs Agent",
         "Config Agent",
+        "Error Handling Agent",
     ]
 
 
@@ -50,10 +59,13 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     assert any("Quality Agent" in event for event in events if isinstance(event, str))
     assert any("Docs Agent" in event for event in events if isinstance(event, str))
     assert any("Config Agent" in event for event in events if isinstance(event, str))
+    assert any("Error Handling Agent" in event for event in events if isinstance(event, str))
     assert isinstance(events[-1], AuditReport)
-    assert len(events[-1].findings) == 2
+    assert len(events[-1].findings) >= 2
+    assert any(finding.agent_source == "Error Handling Agent" for finding in events[-1].findings)
     assert "Security Agent" in events[-1].agents_run
     assert "Performance Agent" in events[-1].agents_run
     assert "Quality Agent" in events[-1].agents_run
     assert "Docs Agent" in events[-1].agents_run
     assert "Config Agent" in events[-1].agents_run
+    assert "Error Handling Agent" in events[-1].agents_run

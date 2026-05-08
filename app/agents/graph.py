@@ -7,6 +7,7 @@ from langgraph.graph import END, StateGraph
 
 from app.agents.config_agent import ConfigAgent
 from app.agents.docs_agent import DocsAgent
+from app.agents.error_handling_agent import ErrorHandlingAgent
 from app.agents.performance_agent import PerformanceAgent
 from app.agents.quality_agent import QualityAgent
 from app.agents.security_agent import SecurityAgent
@@ -43,6 +44,7 @@ class AuditState(TypedDict, total=False):
     quality_output: AgentOutput
     docs_output: AgentOutput
     config_output: AgentOutput
+    error_handling_output: AgentOutput
     report: AuditReport
     progress: Annotated[list[str], add]
 
@@ -93,6 +95,13 @@ class AuditGraph:
                 progress_label="Config Agent",
                 start_message="Config Agent: scanning production configuration risk...",
                 agent=ConfigAgent(),
+            ),
+            AnalysisAgentSpec(
+                node_name="error_handling",
+                state_key="error_handling_output",
+                progress_label="Error Handling Agent",
+                start_message="Error Handling Agent: scanning resilience and failure paths...",
+                agent=ErrorHandlingAgent(),
             ),
         ]
 
