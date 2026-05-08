@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from operator import add
-from typing import Annotated, TypedDict
+from typing import Annotated, Protocol, TypedDict
 
 from langgraph.graph import END, StateGraph
 
@@ -14,6 +15,22 @@ from app.schemas import AgentOutput, AuditReport, CodeChunk, RepoScanResult
 from app.services.chunker import Chunker
 from app.services.llm_client import LLMClient
 from app.services.repo_crawler import RepoCrawler
+
+
+class AnalysisAgent(Protocol):
+    name: str
+
+    async def analyze(self, chunks: list[CodeChunk]) -> AgentOutput:
+        ...
+
+
+@dataclass(frozen=True)
+class AnalysisAgentSpec:
+    node_name: str
+    state_key: str
+    progress_label: str
+    start_message: str
+    agent: AnalysisAgent
 
 
 class AuditState(TypedDict, total=False):
@@ -34,31 +51,67 @@ class AuditGraph:
         self.crawler = RepoCrawler(self.settings)
         self.chunker = Chunker(self.settings)
         self.llm_client = LLMClient(self.settings)
-        self.security_agent = SecurityAgent(self.llm_client)
-        self.performance_agent = PerformanceAgent(self.llm_client)
-        self.quality_agent = QualityAgent(self.llm_client)
-        self.docs_agent = DocsAgent(self.llm_client)
+        self.analysis_agents = self._build_agent_registry()
         self.synthesizer = SynthesizerAgent()
         self.graph = self._build_graph()
+
+    def _build_agent_registry(self) -> list[AnalysisAgentSpec]:
+        return [
+            AnalysisAgentSpec(
+                node_name="security",
+                state_key="security_output",
+                progress_label="Security Agent",
+                start_message="Security Agent: scanning for risky patterns...",
+                agent=SecurityAgent(self.llm_client),
+            ),
+            AnalysisAgentSpec(
+                node_name="performance",
+                state_key="performance_output",
+                progress_label="Performance Agent",
+                start_message="Performance Agent: scanning for slow-path patterns...",
+                agent=PerformanceAgent(self.llm_client),
+            ),
+            AnalysisAgentSpec(
+                node_name="quality",
+                state_key="quality_output",
+                progress_label="Quality Agent",
+                start_message="Quality Agent: scanning maintainability signals...",
+                agent=QualityAgent(self.llm_client),
+            ),
+            AnalysisAgentSpec(
+                node_name="docs",
+                state_key="docs_output",
+                progress_label="Docs Agent",
+                start_message="Docs Agent: scanning README and public documentation...",
+                agent=DocsAgent(self.llm_client),
+            ),
+        ]
 
     def _build_graph(self):
         graph = StateGraph(AuditState)
         graph.add_node("crawl", self._crawl)
         graph.add_node("chunk", self._chunk)
-        graph.add_node("security", self._security)
-        graph.add_node("performance", self._performance)
-        graph.add_node("quality", self._quality)
-        graph.add_node("docs", self._docs)
+        for spec in self.analysis_agents:
+            graph.add_node(spec.node_name, self._make_agent_node(spec))
         graph.add_node("synthesize", self._synthesize)
         graph.set_entry_point("crawl")
         graph.add_edge("crawl", "chunk")
-        graph.add_edge("chunk", "security")
-        graph.add_edge("chunk", "performance")
-        graph.add_edge("chunk", "quality")
-        graph.add_edge("chunk", "docs")
-        graph.add_edge(["security", "performance", "quality", "docs"], "synthesize")
+        agent_node_names = [spec.node_name for spec in self.analysis_agents]
+        for node_name in agent_node_names:
+            graph.add_edge("chunk", node_name)
+        graph.add_edge(agent_node_names, "synthesize")
         graph.add_edge("synthesize", END)
         return graph.compile()
+
+    def _make_agent_node(self, spec: AnalysisAgentSpec):
+        async def run_agent(state: AuditState) -> AuditState:
+            output = await spec.agent.analyze(state["chunks"])
+            return {
+                spec.state_key: output,
+                "progress": [f"{spec.progress_label}: found {len(output.findings)} findings."],
+            }
+
+        return run_agent
 
     async def run(self, repo_url: str) -> AuditReport:
         result = await self.graph.ainvoke({"repo_url": repo_url, "progress": []})
@@ -75,26 +128,17 @@ class AuditGraph:
             chunks = self.chunker.chunk_files(repo.files)
             yield f"Chunker: created {len(chunks)} code chunks."
 
-            yield "Security Agent: scanning for risky patterns..."
-            security_output = await self.security_agent.analyze(chunks)
-            yield f"Security Agent: found {len(security_output.findings)} findings."
-
-            yield "Performance Agent: scanning for slow-path patterns..."
-            performance_output = await self.performance_agent.analyze(chunks)
-            yield f"Performance Agent: found {len(performance_output.findings)} findings."
-
-            yield "Quality Agent: scanning maintainability signals..."
-            quality_output = await self.quality_agent.analyze(chunks)
-            yield f"Quality Agent: found {len(quality_output.findings)} findings."
-
-            yield "Docs Agent: scanning README and public documentation..."
-            docs_output = await self.docs_agent.analyze(chunks)
-            yield f"Docs Agent: found {len(docs_output.findings)} findings."
+            outputs: list[AgentOutput] = []
+            for spec in self.analysis_agents:
+                yield spec.start_message
+                output = await spec.agent.analyze(chunks)
+                outputs.append(output)
+                yield f"{spec.progress_label}: found {len(output.findings)} findings."
 
             yield "Synthesizer Agent: ranking findings and formatting report..."
             report = await self.synthesizer.synthesize(
                 repo,
-                [security_output, performance_output, quality_output, docs_output],
+                outputs,
             )
             yield "Synthesizer Agent: final report generated."
             yield report
@@ -109,26 +153,11 @@ class AuditGraph:
         chunks = self.chunker.chunk_files(state["repo"].files)
         return {"chunks": chunks, "progress": [f"Chunker: created {len(chunks)} code chunks."]}
 
-    async def _security(self, state: AuditState) -> AuditState:
-        output = await self.security_agent.analyze(state["chunks"])
-        return {"security_output": output, "progress": [f"Security Agent: found {len(output.findings)} findings."]}
-
-    async def _performance(self, state: AuditState) -> AuditState:
-        output = await self.performance_agent.analyze(state["chunks"])
-        return {"performance_output": output, "progress": [f"Performance Agent: found {len(output.findings)} findings."]}
-
-    async def _quality(self, state: AuditState) -> AuditState:
-        output = await self.quality_agent.analyze(state["chunks"])
-        return {"quality_output": output, "progress": [f"Quality Agent: found {len(output.findings)} findings."]}
-
-    async def _docs(self, state: AuditState) -> AuditState:
-        output = await self.docs_agent.analyze(state["chunks"])
-        return {"docs_output": output, "progress": [f"Docs Agent: found {len(output.findings)} findings."]}
-
     async def _synthesize(self, state: AuditState) -> AuditState:
+        outputs = [state[spec.state_key] for spec in self.analysis_agents]
         report = await self.synthesizer.synthesize(
             state["repo"],
-            [state["security_output"], state["performance_output"], state["quality_output"], state["docs_output"]],
+            outputs,
         )
         self.crawler.cleanup(state["repo"])
         return {"report": report, "progress": ["Synthesizer Agent: final report generated."]}

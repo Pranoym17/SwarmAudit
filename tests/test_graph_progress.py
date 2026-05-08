@@ -7,6 +7,24 @@ from app.config import Settings
 from app.schemas import AuditReport
 
 
+def test_audit_graph_exposes_current_agents_through_registry():
+    graph = AuditGraph(Settings())
+
+    assert [spec.node_name for spec in graph.analysis_agents] == ["security", "performance", "quality", "docs"]
+    assert [spec.state_key for spec in graph.analysis_agents] == [
+        "security_output",
+        "performance_output",
+        "quality_output",
+        "docs_output",
+    ]
+    assert [spec.agent.name for spec in graph.analysis_agents] == [
+        "Security Agent",
+        "Performance Agent",
+        "Quality Agent",
+        "Docs Agent",
+    ]
+
+
 @pytest.mark.anyio
 async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     source = tmp_path / "app.py"
