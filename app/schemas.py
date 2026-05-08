@@ -41,6 +41,8 @@ class Finding(BaseModel):
     why_it_matters: str
     suggested_fix: str
     agent_source: str
+    category: str | None = None
+    confidence: float | None = Field(default=None, ge=0, le=1)
 
 
 class AgentOutput(BaseModel):
@@ -67,6 +69,11 @@ class AuditReport(BaseModel):
     displayed_findings_count: int = 0
     hidden_findings_count: int = 0
     agent_finding_counts: dict[str, int] = Field(default_factory=dict)
+    category_summary: dict[str, int] = Field(default_factory=dict)
+    security_score: int | None = Field(default=None, ge=0, le=100)
+    production_score: int | None = Field(default=None, ge=0, le=100)
+    remediation_roadmap: dict[str, Any] = Field(default_factory=dict)
+    dependency_cves: list[dict[str, Any]] = Field(default_factory=list)
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     agents_run: list[str]
     warnings: list[str] = Field(default_factory=list)
