@@ -5,6 +5,7 @@ from typing import Annotated, Protocol, TypedDict
 
 from langgraph.graph import END, StateGraph
 
+from app.agents.config_agent import ConfigAgent
 from app.agents.docs_agent import DocsAgent
 from app.agents.performance_agent import PerformanceAgent
 from app.agents.quality_agent import QualityAgent
@@ -41,6 +42,7 @@ class AuditState(TypedDict, total=False):
     performance_output: AgentOutput
     quality_output: AgentOutput
     docs_output: AgentOutput
+    config_output: AgentOutput
     report: AuditReport
     progress: Annotated[list[str], add]
 
@@ -84,6 +86,13 @@ class AuditGraph:
                 progress_label="Docs Agent",
                 start_message="Docs Agent: scanning README and public documentation...",
                 agent=DocsAgent(self.llm_client),
+            ),
+            AnalysisAgentSpec(
+                node_name="config",
+                state_key="config_output",
+                progress_label="Config Agent",
+                start_message="Config Agent: scanning production configuration risk...",
+                agent=ConfigAgent(),
             ),
         ]
 

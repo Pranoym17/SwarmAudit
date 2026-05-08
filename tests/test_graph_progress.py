@@ -10,18 +10,20 @@ from app.schemas import AuditReport
 def test_audit_graph_exposes_current_agents_through_registry():
     graph = AuditGraph(Settings())
 
-    assert [spec.node_name for spec in graph.analysis_agents] == ["security", "performance", "quality", "docs"]
+    assert [spec.node_name for spec in graph.analysis_agents] == ["security", "performance", "quality", "docs", "config"]
     assert [spec.state_key for spec in graph.analysis_agents] == [
         "security_output",
         "performance_output",
         "quality_output",
         "docs_output",
+        "config_output",
     ]
     assert [spec.agent.name for spec in graph.analysis_agents] == [
         "Security Agent",
         "Performance Agent",
         "Quality Agent",
         "Docs Agent",
+        "Config Agent",
     ]
 
 
@@ -47,9 +49,11 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     assert any("Performance Agent" in event for event in events if isinstance(event, str))
     assert any("Quality Agent" in event for event in events if isinstance(event, str))
     assert any("Docs Agent" in event for event in events if isinstance(event, str))
+    assert any("Config Agent" in event for event in events if isinstance(event, str))
     assert isinstance(events[-1], AuditReport)
     assert len(events[-1].findings) == 2
     assert "Security Agent" in events[-1].agents_run
     assert "Performance Agent" in events[-1].agents_run
     assert "Quality Agent" in events[-1].agents_run
     assert "Docs Agent" in events[-1].agents_run
+    assert "Config Agent" in events[-1].agents_run
