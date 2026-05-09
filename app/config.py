@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     llm_api_key: str = "not-needed-for-mock"
     llm_model: str = "Qwen/Qwen2.5-Coder-32B-Instruct"
     enable_llm_enrichment: bool = False
+    enable_dependency_cve_lookup: bool = False
+    dependency_osv_timeout_seconds: int = 20
     max_llm_chunks: int = 5
     llm_timeout_seconds: int = 120
     max_files: int = 200

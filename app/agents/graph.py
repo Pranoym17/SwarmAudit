@@ -7,6 +7,7 @@ from langgraph.graph import END, StateGraph
 
 from app.agents.config_agent import ConfigAgent
 from app.agents.cuda_migration_agent import CudaMigrationAgent
+from app.agents.dependency_agent import DependencyAgent
 from app.agents.docs_agent import DocsAgent
 from app.agents.error_handling_agent import ErrorHandlingAgent
 from app.agents.observability_agent import ObservabilityAgent
@@ -46,6 +47,7 @@ class AuditState(TypedDict, total=False):
     quality_output: AgentOutput
     docs_output: AgentOutput
     config_output: AgentOutput
+    dependency_output: AgentOutput
     error_handling_output: AgentOutput
     observability_output: AgentOutput
     cuda_migration_output: AgentOutput
@@ -99,6 +101,13 @@ class AuditGraph:
                 progress_label="Config Agent",
                 start_message="Config Agent: scanning production configuration risk...",
                 agent=ConfigAgent(),
+            ),
+            AnalysisAgentSpec(
+                node_name="dependency",
+                state_key="dependency_output",
+                progress_label="Dependency Agent",
+                start_message="Dependency Agent: parsing manifests and optional CVE data...",
+                agent=DependencyAgent(self.settings),
             ),
             AnalysisAgentSpec(
                 node_name="error_handling",

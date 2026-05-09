@@ -40,6 +40,17 @@ def test_scan_local_repo_includes_readme_for_docs_agent(tmp_path: Path):
     assert result.files[0].language == "Markdown"
 
 
+def test_scan_local_repo_includes_dependency_manifests(tmp_path: Path):
+    (tmp_path / "requirements.txt").write_text("requests==2.28.0\n", encoding="utf-8")
+    (tmp_path / "package.json").write_text('{"dependencies": {"express": "4.18.2"}}', encoding="utf-8")
+
+    crawler = RepoCrawler(Settings(max_files=10, max_file_size_kb=10))
+    result = crawler.scan_local_repo("https://github.com/example/project", tmp_path)
+
+    assert {source_file.path for source_file in result.files} == {"requirements.txt", "package.json"}
+    assert {source_file.language for source_file in result.files} == {"Python Requirements", "Node Package"}
+
+
 def test_clone_and_scan_omits_gitpython_timeout_on_windows(tmp_path: Path):
     crawler = RepoCrawler(Settings(max_files=10, max_file_size_kb=1, clone_base_dir=str(tmp_path / "clones")))
 

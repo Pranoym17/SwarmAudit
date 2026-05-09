@@ -74,3 +74,23 @@ async def test_synthesizer_populates_scores_categories_and_roadmap():
     assert report.remediation_roadmap["this_week"][0]["category"] == "security"
     assert report.remediation_roadmap["next_sprint"][0]["category"] == "performance"
     assert report.remediation_roadmap["backlog"][0]["category"] == "error_handling"
+
+
+@pytest.mark.anyio
+async def test_synthesizer_carries_dependency_cves_and_warnings():
+    outputs = [
+        AgentOutput(
+            agent_name="Dependency Agent",
+            findings=[],
+            metadata={
+                "dependency_cves": [{"id": "GHSA-test", "package": "requests", "severity": "HIGH"}],
+                "warnings": ["Dependency CVE lookup failed gracefully: timeout"],
+            },
+        )
+    ]
+    repo = RepoScanResult(repo_url="https://github.com/example/project", local_path=".", files=[], skipped_files=0)
+
+    report = await SynthesizerAgent().synthesize(repo, outputs)
+
+    assert report.dependency_cves == [{"id": "GHSA-test", "package": "requests", "severity": "HIGH"}]
+    assert "timeout" in report.warnings[0]

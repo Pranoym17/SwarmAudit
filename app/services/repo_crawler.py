@@ -40,6 +40,13 @@ SUPPORTED_EXTENSIONS = {
 }
 
 README_FILENAMES = {"readme", "readme.md", "readme.rst", "readme.txt"}
+DEPENDENCY_MANIFESTS = {
+    "requirements.txt": "Python Requirements",
+    "pyproject.toml": "Python Project",
+    "package.json": "Node Package",
+    "go.mod": "Go Module",
+    "cargo.toml": "Rust Package",
+}
 
 
 def validate_github_url(repo_url: str) -> str:
@@ -87,7 +94,8 @@ class RepoCrawler:
                 skipped += 1
                 continue
             readme_language = self._readme_language(rel_path)
-            if path.suffix.lower() not in SUPPORTED_EXTENSIONS and readme_language is None:
+            manifest_language = self._manifest_language(rel_path)
+            if path.suffix.lower() not in SUPPORTED_EXTENSIONS and readme_language is None and manifest_language is None:
                 skipped += 1
                 continue
             size = path.stat().st_size
@@ -99,7 +107,7 @@ class RepoCrawler:
                 skipped += 1
                 continue
 
-            language = readme_language or SUPPORTED_EXTENSIONS[path.suffix.lower()]
+            language = readme_language or manifest_language or SUPPORTED_EXTENSIONS[path.suffix.lower()]
             files.append(
                 SourceFile(
                     path=str(rel_path).replace("\\", "/"),
@@ -124,6 +132,9 @@ class RepoCrawler:
         if rel_path.name.lower() not in README_FILENAMES:
             return None
         return "Markdown" if rel_path.suffix.lower() == ".md" else "Documentation"
+
+    def _manifest_language(self, rel_path: Path) -> str | None:
+        return DEPENDENCY_MANIFESTS.get(rel_path.name.lower())
 
     def cleanup(self, scan_result: RepoScanResult | None) -> None:
         if scan_result is None:

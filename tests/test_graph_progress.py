@@ -16,6 +16,7 @@ def test_audit_graph_exposes_current_agents_through_registry():
         "quality",
         "docs",
         "config",
+        "dependency",
         "error_handling",
         "observability",
         "cuda_migration",
@@ -26,6 +27,7 @@ def test_audit_graph_exposes_current_agents_through_registry():
         "quality_output",
         "docs_output",
         "config_output",
+        "dependency_output",
         "error_handling_output",
         "observability_output",
         "cuda_migration_output",
@@ -36,6 +38,7 @@ def test_audit_graph_exposes_current_agents_through_registry():
         "Quality Agent",
         "Docs Agent",
         "Config Agent",
+        "Dependency Agent",
         "Error Handling Agent",
         "Observability Agent",
         "CUDA-to-ROCm Agent",
@@ -65,6 +68,7 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     assert any("Quality Agent" in event for event in events if isinstance(event, str))
     assert any("Docs Agent" in event for event in events if isinstance(event, str))
     assert any("Config Agent" in event for event in events if isinstance(event, str))
+    assert any("Dependency Agent" in event for event in events if isinstance(event, str))
     assert any("Error Handling Agent" in event for event in events if isinstance(event, str))
     assert any("Observability Agent" in event for event in events if isinstance(event, str))
     assert any("CUDA-to-ROCm Agent" in event for event in events if isinstance(event, str))
@@ -76,6 +80,7 @@ async def test_run_with_progress_yields_real_stages_and_report(tmp_path: Path):
     assert "Quality Agent" in events[-1].agents_run
     assert "Docs Agent" in events[-1].agents_run
     assert "Config Agent" in events[-1].agents_run
+    assert "Dependency Agent" in events[-1].agents_run
     assert "Error Handling Agent" in events[-1].agents_run
     assert "Observability Agent" in events[-1].agents_run
     assert "CUDA-to-ROCm Agent" in events[-1].agents_run

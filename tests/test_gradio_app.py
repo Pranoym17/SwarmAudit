@@ -68,7 +68,7 @@ def test_render_agent_swarm_tracks_running_and_done_states():
         ]
     )
 
-    assert "1/11 done" in html
+    assert "1/12 done" in html
     assert '<div class="agent-item done">' in html
     assert '<div class="agent-item running">' in html
 

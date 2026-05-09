@@ -55,6 +55,16 @@ def format_report_markdown(report: AuditReport) -> str:
                     f"`{item.get('file_path', 'unknown')}:{item.get('line_start', '?')}`"
                 )
 
+    if report.dependency_cves:
+        lines.extend(["", "## Dependency CVEs", ""])
+        for cve in report.dependency_cves:
+            fixed_version = cve.get("fixed_version") or "a patched version"
+            lines.append(
+                f"- **[{cve.get('severity', 'LOW')}] {cve.get('id', 'UNKNOWN')}** "
+                f"`{cve.get('package', 'package')}@{cve.get('version', 'unknown')}` "
+                f"({cve.get('ecosystem', 'unknown')}) - upgrade to {fixed_version}"
+            )
+
     if report.warnings:
         lines.extend(["", "## Warnings", ""])
         lines.extend(f"- {warning}" for warning in report.warnings)

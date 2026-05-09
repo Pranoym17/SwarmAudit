@@ -30,6 +30,7 @@ AGENT_SWARM = [
     ("Quality", "Lint, types, smells", "Quality Agent", "found"),
     ("Docs", "Coverage and accuracy", "Docs Agent", "found"),
     ("Config", "Production config risk", "Config Agent", "found"),
+    ("Dependency", "Manifest and CVE checks", "Dependency Agent", "found"),
     ("Errors", "Resilience paths", "Error Handling Agent", "found"),
     ("Observability", "Logs and health checks", "Observability Agent", "found"),
     ("ROCm", "CUDA portability", "CUDA-to-ROCm Agent", "found"),

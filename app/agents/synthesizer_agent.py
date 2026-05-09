@@ -74,6 +74,18 @@ class SynthesizerAgent:
         category_summary = self._category_summary(all_findings)
         security_score, production_score = self._compute_scores(all_findings)
         roadmap = self._build_roadmap(all_findings)
+        dependency_cves = [
+            cve
+            for output in outputs
+            for cve in output.metadata.get("dependency_cves", [])
+            if isinstance(cve, dict)
+        ]
+        dependency_warnings = [
+            warning
+            for output in outputs
+            for warning in output.metadata.get("warnings", [])
+            if isinstance(warning, str)
+        ]
 
         return AuditReport(
             repo_url=repo.repo_url,
@@ -89,8 +101,9 @@ class SynthesizerAgent:
             security_score=security_score,
             production_score=production_score,
             remediation_roadmap=roadmap,
+            dependency_cves=dependency_cves,
             agents_run=[output.agent_name for output in outputs] + [self.name],
-            warnings=repo.warnings + warnings,
+            warnings=repo.warnings + dependency_warnings + warnings,
         )
 
     def _dedupe(self, findings: list[Finding]) -> list[Finding]:

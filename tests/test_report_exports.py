@@ -49,6 +49,16 @@ def make_report() -> AuditReport:
             ],
             "backlog": [],
         },
+        dependency_cves=[
+            {
+                "id": "GHSA-test",
+                "package": "requests",
+                "version": "2.28.0",
+                "ecosystem": "PyPI",
+                "severity": "HIGH",
+                "fixed_version": "2.32.0",
+            }
+        ],
         agents_run=["Performance Agent", "Synthesizer Agent"],
     )
 
@@ -69,6 +79,8 @@ def test_write_report_exports_creates_markdown_and_json():
     assert "Production Readiness Score" in markdown
     assert "Category Summary" in markdown
     assert "Remediation Roadmap" in markdown
+    assert "Dependency CVEs" in markdown
+    assert "GHSA-test" in markdown
     assert "Missing timeout" in markdown
     assert data["repo_url"] == "https://github.com/example/project"
     assert data["findings"][0]["severity"] == "MEDIUM"
