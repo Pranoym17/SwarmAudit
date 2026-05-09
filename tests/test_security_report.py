@@ -16,7 +16,7 @@ async def test_security_agent_and_synthesizer_return_structured_report():
         line_end=10,
         content="API_KEY = '1234567890abcdef'",
     )
-    output = await SecurityAgent(LLMClient(Settings())).analyze([chunk])
+    output = await SecurityAgent(LLMClient(Settings(enable_llm_enrichment=False))).analyze([chunk])
     repo = RepoScanResult(repo_url="https://github.com/example/project", local_path=".", files=[], skipped_files=0)
 
     report = await SynthesizerAgent().synthesize(repo, [output])

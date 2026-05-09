@@ -1,6 +1,8 @@
 import pytest
 
 from app.agents.docs_agent import DocsAgent
+from app.config import Settings
+from app.services.llm_client import LLMClient
 from app.schemas import CodeChunk, Severity
 
 
@@ -14,7 +16,7 @@ async def test_docs_agent_flags_incomplete_readme():
         content="# Demo\nShort description only.",
     )
 
-    output = await DocsAgent().analyze([chunk])
+    output = await DocsAgent(LLMClient(Settings(enable_llm_enrichment=False))).analyze([chunk])
 
     titles = {finding.title for finding in output.findings}
     assert "README missing usage/setup guidance" in titles
@@ -32,7 +34,7 @@ async def test_docs_agent_accepts_useful_readme():
         content="# Demo\n\n## Quick Start\nInstall and run it.\n## Tests\nRun pytest.\n## Configuration\nCopy .env.example.",
     )
 
-    output = await DocsAgent().analyze([chunk])
+    output = await DocsAgent(LLMClient(Settings(enable_llm_enrichment=False))).analyze([chunk])
 
     assert output.findings == []
 
@@ -47,7 +49,7 @@ async def test_docs_agent_flags_public_python_symbol_without_docstring():
         content="def run_audit():\n    return True",
     )
 
-    output = await DocsAgent().analyze([chunk])
+    output = await DocsAgent(LLMClient(Settings(enable_llm_enrichment=False))).analyze([chunk])
 
     assert output.findings[0].title == "Public Python symbols missing docstrings"
     assert output.findings[0].severity == Severity.low
@@ -64,7 +66,7 @@ async def test_docs_agent_summarizes_missing_docstrings_per_chunk():
         content="def first():\n    pass\n\ndef second():\n    pass",
     )
 
-    output = await DocsAgent().analyze([chunk])
+    output = await DocsAgent(LLMClient(Settings(enable_llm_enrichment=False))).analyze([chunk])
 
     docstring_findings = [
         finding for finding in output.findings if finding.title == "Public Python symbols missing docstrings"

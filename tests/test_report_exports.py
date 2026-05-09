@@ -2,7 +2,12 @@ import json
 from pathlib import Path
 
 from app.schemas import AuditReport, Finding, Severity
-from app.services.report_formatter import format_empty_report_html, format_report_html, write_report_exports
+from app.services.report_formatter import (
+    format_empty_report_html,
+    format_finding_detail_html,
+    format_report_html,
+    write_report_exports,
+)
 
 
 def make_report() -> AuditReport:
@@ -116,3 +121,10 @@ def test_format_empty_report_html_renders_placeholder():
 
     assert "Run an audit to populate findings" in html
     assert "audit-console" in html
+
+
+def test_format_finding_detail_links_to_github_file_reference():
+    html = format_finding_detail_html(make_report(), 0)
+
+    assert 'href="https://github.com/example/project/blob/HEAD/app.py#L10"' in html
+    assert 'target="_blank"' in html

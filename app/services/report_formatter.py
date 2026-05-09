@@ -1,6 +1,7 @@
 import tempfile
 from html import escape
 from pathlib import Path
+from urllib.parse import quote
 
 from app.schemas import AuditReport, Severity
 
@@ -220,7 +221,7 @@ def format_finding_detail_html(report: AuditReport | None, index: int = 0) -> st
     safe_index = min(max(index, 0), len(report.findings) - 1)
     return f"""
     <section class="finding-detail-panel">
-        {_finding_detail(report.findings[safe_index], safe_index + 1)}
+        {_finding_detail(report.findings[safe_index], safe_index + 1, report.repo_url)}
     </section>
     """
 
@@ -267,11 +268,17 @@ def _severity_filter_items(counts: dict[Severity, int]) -> str:
     return "\n".join(items)
 
 
-def _finding_detail(finding, index: int) -> str:
+def _finding_detail(finding, index: int, repo_url: str | None = None) -> str:
     severity = finding.severity.value
     severity_class = severity.lower()
     reference = f"{finding.file_path}:{finding.line_start}-{finding.line_end}"
     category = finding.category or finding.agent_source.replace(" Agent", "").lower()
+    file_url = _github_file_url(repo_url, finding.file_path, finding.line_start)
+    open_html = (
+        f'<a href="{escape(file_url)}" target="_blank" rel="noopener noreferrer">open -></a>'
+        if file_url
+        else "<span>open -></span>"
+    )
     return f"""
     <div class="finding-detail-meta">
         <span>F-{index:03d}</span>
@@ -298,7 +305,7 @@ def _finding_detail(finding, index: int) -> str:
     </div>
     <div class="reference-card">
         <code>{escape(reference)}</code>
-        <span>open -></span>
+        {open_html}
     </div>
     """
 
@@ -326,3 +333,11 @@ def _label(value: str | None) -> str:
     if not value:
         return "General"
     return value.replace("_", " ").replace("-", " ").title()
+
+
+def _github_file_url(repo_url: str | None, file_path: str, line_start: int) -> str | None:
+    if not repo_url or "github.com/" not in repo_url:
+        return None
+    normalized_repo = repo_url.removesuffix(".git").rstrip("/")
+    quoted_path = quote(file_path.replace("\\", "/"))
+    return f"{normalized_repo}/blob/HEAD/{quoted_path}#L{line_start}"

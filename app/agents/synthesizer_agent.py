@@ -57,6 +57,9 @@ PRODUCTION_WEIGHTS = {
     Severity.low: 1,
 }
 
+MAX_SECURITY_CATEGORY_PENALTY = 35
+MAX_PRODUCTION_CATEGORY_PENALTY = 28
+
 
 class SynthesizerAgent:
     name = "Synthesizer Agent"
@@ -171,8 +174,8 @@ class SynthesizerAgent:
         return dict(sorted(summary.items(), key=lambda item: (-item[1], item[0])))
 
     def _compute_scores(self, findings: list[Finding]) -> tuple[int, int]:
-        security_penalty = 0
-        production_penalty = 0
+        security_penalties: dict[str, int] = {}
+        production_penalties: dict[str, int] = {}
 
         for finding in findings:
             category = self._category_for(finding)
@@ -182,7 +185,7 @@ class SynthesizerAgent:
                 "Dependency Agent",
                 "CUDA-to-ROCm Agent",
             }:
-                security_penalty += SECURITY_WEIGHTS[finding.severity]
+                security_penalties[category] = security_penalties.get(category, 0) + SECURITY_WEIGHTS[finding.severity]
             if category in PRODUCTION_CATEGORIES or finding.agent_source in {
                 "Performance Agent",
                 "Quality Agent",
@@ -190,9 +193,18 @@ class SynthesizerAgent:
                 "Error Handling Agent",
                 "Observability Agent",
             }:
-                production_penalty += PRODUCTION_WEIGHTS[finding.severity]
+                production_penalties[category] = (
+                    production_penalties.get(category, 0) + PRODUCTION_WEIGHTS[finding.severity]
+                )
 
-        return max(0, 100 - security_penalty), max(0, 100 - production_penalty)
+        security_penalty = sum(min(value, MAX_SECURITY_CATEGORY_PENALTY) for value in security_penalties.values())
+        production_penalty = sum(min(value, MAX_PRODUCTION_CATEGORY_PENALTY) for value in production_penalties.values())
+        return self._score_from_penalty(security_penalty), self._score_from_penalty(production_penalty)
+
+    def _score_from_penalty(self, penalty: int) -> int:
+        if penalty <= 0:
+            return 100
+        return max(1, round(10000 / (100 + penalty)))
 
     def _build_roadmap(self, findings: list[Finding]) -> dict[str, list[dict[str, str]]]:
         critical = [finding for finding in findings if finding.severity == Severity.critical]

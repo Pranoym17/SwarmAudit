@@ -213,7 +213,12 @@ def test_launch_app_uses_spaces_friendly_defaults(monkeypatch):
 
 
 @pytest.mark.anyio
-async def test_run_llm_diagnostics_returns_provider_status():
+async def test_run_llm_diagnostics_returns_provider_status(monkeypatch):
+    monkeypatch.setattr(
+        "app.ui.gradio_app.get_settings",
+        lambda: __import__("app.config").config.Settings(llm_provider="mock"),
+    )
+
     markdown = await run_llm_diagnostics()
 
     assert "LLM Diagnostics" in markdown
@@ -222,7 +227,12 @@ async def test_run_llm_diagnostics_returns_provider_status():
 
 
 @pytest.mark.anyio
-async def test_run_benchmark_returns_mock_result():
+async def test_run_benchmark_returns_mock_result(monkeypatch):
+    monkeypatch.setattr(
+        "app.ui.gradio_app.get_settings",
+        lambda: __import__("app.config").config.Settings(llm_provider="mock"),
+    )
+
     markdown = await run_benchmark()
 
     assert "LLM Benchmark" in markdown

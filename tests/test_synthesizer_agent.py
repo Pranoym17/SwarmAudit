@@ -68,7 +68,7 @@ async def test_synthesizer_populates_scores_categories_and_roadmap():
 
     report = await SynthesizerAgent().synthesize(repo, outputs)
 
-    assert report.security_score == 88
+    assert report.security_score == 89
     assert report.production_score == 95
     assert report.category_summary == {"error_handling": 1, "performance": 1, "security": 1}
     assert report.remediation_roadmap["this_week"][0]["category"] == "security"
@@ -94,3 +94,26 @@ async def test_synthesizer_carries_dependency_cves_and_warnings():
 
     assert report.dependency_cves == [{"id": "GHSA-test", "package": "requests", "severity": "HIGH"}]
     assert "timeout" in report.warnings[0]
+
+
+@pytest.mark.anyio
+async def test_synthesizer_caps_score_penalties_for_noisy_repos():
+    outputs = [
+        AgentOutput(
+            agent_name="Performance Agent",
+            findings=[make_finding(index, "Performance Agent", Severity.medium) for index in range(120)],
+        ),
+        AgentOutput(
+            agent_name="Docs Agent",
+            findings=[make_finding(index + 200, "Docs Agent", Severity.low) for index in range(80)],
+        ),
+        AgentOutput(
+            agent_name="Error Handling Agent",
+            findings=[make_finding(index + 400, "Error Handling Agent", Severity.high) for index in range(20)],
+        ),
+    ]
+    repo = RepoScanResult(repo_url="https://github.com/example/project", local_path=".", files=[], skipped_files=0)
+
+    report = await SynthesizerAgent().synthesize(repo, outputs)
+
+    assert report.production_score == 54

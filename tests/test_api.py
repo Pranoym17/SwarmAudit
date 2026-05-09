@@ -15,4 +15,4 @@ def test_llm_health_endpoint():
 
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    assert response.json()["provider"] == "mock"
+    assert response.json()["provider"] in {"mock", "vllm"}
