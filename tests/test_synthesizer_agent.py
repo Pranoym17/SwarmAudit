@@ -46,3 +46,31 @@ async def test_synthesizer_keeps_high_severity_before_low_findings():
     report = await SynthesizerAgent().synthesize(repo, outputs)
 
     assert report.findings[0].severity == Severity.high
+
+
+@pytest.mark.anyio
+async def test_synthesizer_populates_scores_categories_and_roadmap():
+    outputs = [
+        AgentOutput(
+            agent_name="Security Agent",
+            findings=[make_finding(1, "Security Agent", Severity.high)],
+        ),
+        AgentOutput(
+            agent_name="Performance Agent",
+            findings=[make_finding(2, "Performance Agent", Severity.medium)],
+        ),
+        AgentOutput(
+            agent_name="Error Handling Agent",
+            findings=[make_finding(3, "Error Handling Agent", Severity.low)],
+        ),
+    ]
+    repo = RepoScanResult(repo_url="https://github.com/example/project", local_path=".", files=[], skipped_files=0)
+
+    report = await SynthesizerAgent().synthesize(repo, outputs)
+
+    assert report.security_score == 88
+    assert report.production_score == 95
+    assert report.category_summary == {"error_handling": 1, "performance": 1, "security": 1}
+    assert report.remediation_roadmap["this_week"][0]["category"] == "security"
+    assert report.remediation_roadmap["next_sprint"][0]["category"] == "performance"
+    assert report.remediation_roadmap["backlog"][0]["category"] == "error_handling"

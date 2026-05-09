@@ -16,6 +16,47 @@ MAX_DISPLAY_FINDINGS_BY_AGENT = {
     "Docs Agent": 8,
 }
 
+SECURITY_CATEGORIES = {
+    "security",
+    "config",
+    "dependency",
+    "cuda_migration",
+}
+
+PRODUCTION_CATEGORIES = {
+    "performance",
+    "quality",
+    "docs",
+    "error_handling",
+    "observability",
+}
+
+AGENT_CATEGORY_DEFAULTS = {
+    "Security Agent": "security",
+    "Config Agent": "config",
+    "Dependency Agent": "dependency",
+    "CUDA-to-ROCm Agent": "cuda_migration",
+    "Performance Agent": "performance",
+    "Quality Agent": "quality",
+    "Docs Agent": "docs",
+    "Error Handling Agent": "error_handling",
+    "Observability Agent": "observability",
+}
+
+SECURITY_WEIGHTS = {
+    Severity.critical: 24,
+    Severity.high: 12,
+    Severity.medium: 5,
+    Severity.low: 1,
+}
+
+PRODUCTION_WEIGHTS = {
+    Severity.critical: 16,
+    Severity.high: 9,
+    Severity.medium: 4,
+    Severity.low: 1,
+}
+
 
 class SynthesizerAgent:
     name = "Synthesizer Agent"
@@ -30,6 +71,9 @@ class SynthesizerAgent:
 
         agent_counts = {output.agent_name: len(output.findings) for output in outputs}
         display_findings, hidden_count, warnings = self._select_display_findings(all_findings, agent_counts)
+        category_summary = self._category_summary(all_findings)
+        security_score, production_score = self._compute_scores(all_findings)
+        roadmap = self._build_roadmap(all_findings)
 
         return AuditReport(
             repo_url=repo.repo_url,
@@ -41,6 +85,10 @@ class SynthesizerAgent:
             displayed_findings_count=len(display_findings),
             hidden_findings_count=hidden_count,
             agent_finding_counts=agent_counts,
+            category_summary=category_summary,
+            security_score=security_score,
+            production_score=production_score,
+            remediation_roadmap=roadmap,
             agents_run=[output.agent_name for output in outputs] + [self.name],
             warnings=repo.warnings + warnings,
         )
@@ -96,3 +144,65 @@ class SynthesizerAgent:
     def _is_test_file(self, file_path: str) -> bool:
         normalized = file_path.lower().replace("\\", "/")
         return "/test" in normalized or normalized.startswith("test") or "_test." in normalized
+
+    def _category_for(self, finding: Finding) -> str:
+        if finding.category:
+            return finding.category
+        return AGENT_CATEGORY_DEFAULTS.get(finding.agent_source, finding.agent_source.replace(" Agent", "").lower())
+
+    def _category_summary(self, findings: list[Finding]) -> dict[str, int]:
+        summary: dict[str, int] = {}
+        for finding in findings:
+            category = self._category_for(finding)
+            summary[category] = summary.get(category, 0) + 1
+        return dict(sorted(summary.items(), key=lambda item: (-item[1], item[0])))
+
+    def _compute_scores(self, findings: list[Finding]) -> tuple[int, int]:
+        security_penalty = 0
+        production_penalty = 0
+
+        for finding in findings:
+            category = self._category_for(finding)
+            if category in SECURITY_CATEGORIES or finding.agent_source in {
+                "Security Agent",
+                "Config Agent",
+                "Dependency Agent",
+                "CUDA-to-ROCm Agent",
+            }:
+                security_penalty += SECURITY_WEIGHTS[finding.severity]
+            if category in PRODUCTION_CATEGORIES or finding.agent_source in {
+                "Performance Agent",
+                "Quality Agent",
+                "Docs Agent",
+                "Error Handling Agent",
+                "Observability Agent",
+            }:
+                production_penalty += PRODUCTION_WEIGHTS[finding.severity]
+
+        return max(0, 100 - security_penalty), max(0, 100 - production_penalty)
+
+    def _build_roadmap(self, findings: list[Finding]) -> dict[str, list[dict[str, str]]]:
+        critical = [finding for finding in findings if finding.severity == Severity.critical]
+        high = [finding for finding in findings if finding.severity == Severity.high]
+        medium = [finding for finding in findings if finding.severity == Severity.medium]
+        low = [finding for finding in findings if finding.severity == Severity.low]
+
+        this_week = critical + high[:5]
+        next_sprint = high[5:] + medium[:10]
+        backlog = medium[10:] + low
+
+        return {
+            "this_week": [self._roadmap_item(finding) for finding in this_week],
+            "next_sprint": [self._roadmap_item(finding) for finding in next_sprint],
+            "backlog": [self._roadmap_item(finding) for finding in backlog],
+        }
+
+    def _roadmap_item(self, finding: Finding) -> dict[str, str]:
+        return {
+            "title": finding.title,
+            "severity": finding.severity.value,
+            "category": self._category_for(finding),
+            "file_path": finding.file_path,
+            "line_start": str(finding.line_start),
+            "agent_source": finding.agent_source,
+        }
