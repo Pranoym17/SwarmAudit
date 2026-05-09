@@ -8,7 +8,9 @@ from app.ui.gradio_app import (
     build_app,
     build_finding_choices,
     build_finding_rows,
+    build_severity_filter_choices,
     choose_example,
+    filter_findings,
     launch_app,
     render_agent_swarm,
     render_empty_summary,
@@ -101,7 +103,7 @@ def test_render_report_summary_uses_report_counts():
     assert "metric-critical" in html
 
 
-def test_render_report_toolbar_uses_actual_severity_counts():
+def test_render_report_toolbar_renders_report_title():
     report = AuditReport(
         repo_url="https://github.com/example/project",
         scanned_file_count=4,
@@ -124,14 +126,25 @@ def test_render_report_toolbar_uses_actual_severity_counts():
     html = render_report_toolbar(report)
 
     assert "Audit report" in html
-    assert "All 3" in html
-    assert "Critical 1" in html
-    assert "High 2" in html
-    assert "Security Score" in html
-    assert "76/100" in html
-    assert "Production Readiness" in html
-    assert "Security: 3" in html
-    assert "This Week: 1" in html
+
+
+def test_build_severity_filter_choices_uses_actual_counts():
+    report = AuditReport(
+        repo_url="https://github.com/example/project",
+        scanned_file_count=4,
+        skipped_file_count=1,
+        findings=[],
+        severity_summary={
+            Severity.critical: 1,
+            Severity.high: 2,
+            Severity.medium: 0,
+            Severity.low: 0,
+        },
+        displayed_findings_count=3,
+        agents_run=["Synthesizer Agent"],
+    )
+
+    assert build_severity_filter_choices(report) == ["All 3", "Critical 1", "High 2"]
 
 
 def make_report_with_findings() -> AuditReport:
@@ -173,7 +186,29 @@ def test_build_finding_rows_uses_actual_report_findings():
 def test_build_finding_choices_uses_actual_report_findings():
     choices = build_finding_choices(make_report_with_findings())
 
-    assert choices == ["F-001  [MEDIUM]  Missing timeout\napp.py:10  |  Performance Agent"]
+    assert choices == ["MED   F-001  Missing timeout\napp.py:10  |  Performance Agent"]
+
+
+def test_filter_findings_returns_only_selected_severity():
+    high = Finding(
+        title="High risk",
+        severity=Severity.high,
+        file_path="app.py",
+        line_start=20,
+        line_end=20,
+        description="High issue.",
+        why_it_matters="Important.",
+        suggested_fix="Fix it.",
+        agent_source="Security Agent",
+        category="security",
+    )
+    report = make_report_with_findings()
+    report.findings.append(high)
+
+    update, html = filter_findings("High 1", report)
+
+    assert update["choices"] == ["HIGH  F-002  High risk\napp.py:20  |  Security Agent"]
+    assert "High risk" in html
 
 
 def test_select_finding_renders_selected_actual_finding():
@@ -212,6 +247,32 @@ def test_launch_app_uses_spaces_friendly_defaults(monkeypatch):
     assert calls == {"server_name": "0.0.0.0", "server_port": 7860}
 
 
+def test_launch_app_retries_dynamic_port_when_default_local_port_is_busy(monkeypatch):
+    calls = []
+
+    class FakeQueuedApp:
+        def launch(self, **kwargs):
+            calls.append(kwargs)
+            if len(calls) == 1:
+                raise OSError("Cannot find empty port in range: 7860-7860")
+
+    class FakeApp:
+        def queue(self):
+            return FakeQueuedApp()
+
+    monkeypatch.setattr("app.ui.gradio_app.build_app", lambda: FakeApp())
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.delenv("GRADIO_SERVER_PORT", raising=False)
+    monkeypatch.delenv("GRADIO_SERVER_NAME", raising=False)
+
+    launch_app()
+
+    assert calls == [
+        {"server_name": "0.0.0.0", "server_port": 7860},
+        {"server_name": "0.0.0.0", "server_port": None},
+    ]
+
+
 @pytest.mark.anyio
 async def test_run_llm_diagnostics_returns_provider_status(monkeypatch):
     monkeypatch.setattr(
@@ -248,10 +309,12 @@ async def test_analyze_repo_empty_input_clears_report_exports():
     assert "Agent swarm" in result[1]
     assert "Files scanned" in result[2]
     assert "Audit report" in result[3]
-    assert result[4]["choices"] == []
-    assert result[4]["value"] is None
-    assert "Select a finding" in result[5]
-    assert result[6:] == (None, None, None)
+    assert result[4]["choices"] == ["All 0"]
+    assert "Security Score" in result[5]
+    assert result[6]["choices"] == []
+    assert result[6]["value"] is None
+    assert "Select a finding" in result[7]
+    assert result[8:] == (None, None, None)
 
 
 @pytest.mark.anyio
@@ -271,7 +334,9 @@ async def test_analyze_repo_failure_clears_report_exports(monkeypatch):
     assert "Agent swarm" in updates[-1][1]
     assert "Files scanned" in updates[-1][2]
     assert "Audit report" in updates[-1][3]
-    assert updates[-1][4]["choices"] == []
-    assert updates[-1][4]["value"] is None
-    assert "Select a finding" in updates[-1][5]
-    assert updates[-1][6:] == (None, None, None)
+    assert updates[-1][4]["choices"] == ["All 0"]
+    assert "Security Score" in updates[-1][5]
+    assert updates[-1][6]["choices"] == []
+    assert updates[-1][6]["value"] is None
+    assert "Select a finding" in updates[-1][7]
+    assert updates[-1][8:] == (None, None, None)

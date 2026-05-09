@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+import app.main as main
+from app.config import Settings
 from app.main import app
 
 
@@ -10,7 +12,9 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok", "app": "SwarmAudit"}
 
 
-def test_llm_health_endpoint():
+def test_llm_health_endpoint(monkeypatch):
+    monkeypatch.setattr(main, "get_settings", lambda: Settings(_env_file=None, llm_provider="mock"))
+
     response = TestClient(app).get("/llm/health")
 
     assert response.status_code == 200

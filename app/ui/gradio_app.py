@@ -42,26 +42,54 @@ APP_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --sa-bg: #0d1117;
-    --sa-surface: #111820;
-    --sa-panel: #161d26;
-    --sa-panel-high: #1d2631;
-    --sa-border: #2b3542;
-    --sa-border-strong: #3d4a5c;
-    --sa-text: #f2f5f8;
-    --sa-muted: #99a6b8;
-    --sa-primary: #9db2c7;
-    --sa-primary-soft: #1b2733;
-    --sa-blue: #7aaac2;
-    --sa-orange: #c48a57;
-    --sa-yellow: #c5aa55;
-    --sa-red: #c86872;
-    --sa-green: #8bbf9a;
-    --sa-card-shadow: 0 18px 70px rgba(0, 0, 0, 0.2);
+    --sa-bg: #080d14;
+    --sa-surface: #0d141d;
+    --sa-panel: #101923;
+    --sa-panel-high: #162233;
+    --sa-panel-higher: #1b293a;
+    --sa-border: #26364a;
+    --sa-border-strong: #33465e;
+    --sa-text: #e6f0ff;
+    --sa-muted: #8aa0b8;
+    --sa-primary: #60a5fa;
+    --sa-primary-soft: rgba(96, 165, 250, 0.14);
+    --sa-blue: #06b6d4;
+    --sa-orange: #f97316;
+    --sa-yellow: #eab308;
+    --sa-red: #ef4444;
+    --sa-green: #22c55e;
+    --sa-info: #64748b;
+    --sa-card-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #475569 #0f172a;
+}
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 999px;
+    border: 2px solid #0f172a;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
 }
 
 .gradio-container {
-    background: #0d1117 !important;
+    background:
+        radial-gradient(circle at 18% -10%, rgba(96, 165, 250, 0.08), transparent 30%),
+        linear-gradient(180deg, #0a1018 0%, var(--sa-bg) 38%, #070b11 100%) !important;
     color: var(--sa-text) !important;
     font-family: Inter, system-ui, sans-serif !important;
 }
@@ -72,11 +100,15 @@ APP_CSS = """
 }
 
 .swarm-topbar {
-    border: 1px solid var(--sa-border);
-    background: #111820;
-    border-radius: 8px;
-    padding: 14px 16px;
+    border: 1px solid rgba(96, 165, 250, 0.18);
+    background:
+        linear-gradient(135deg, rgba(16, 25, 35, 0.94), rgba(13, 20, 29, 0.86)),
+        rgba(16, 25, 35, 0.86);
+    border-radius: 10px;
+    padding: 14px 16px 13px;
     margin-bottom: 12px;
+    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(230, 240, 255, 0.04);
+    backdrop-filter: blur(10px);
 }
 
 .swarm-brand-row {
@@ -88,7 +120,7 @@ APP_CSS = """
 }
 
 .swarm-brand {
-    font-size: 18px;
+    font-size: 19px;
     line-height: 24px;
     font-weight: 700;
     letter-spacing: 0;
@@ -107,9 +139,9 @@ APP_CSS = """
 }
 
 .swarm-progressbar {
-    height: 4px;
+    height: 3px;
     border-radius: 999px;
-    background: #22303c;
+    background: rgba(38, 54, 74, 0.7);
     overflow: hidden;
 }
 
@@ -117,7 +149,8 @@ APP_CSS = """
     display: block;
     width: 100%;
     height: 100%;
-    background: var(--sa-primary);
+    background: linear-gradient(90deg, var(--sa-primary), #22c55e);
+    box-shadow: 0 0 18px rgba(96, 165, 250, 0.24);
 }
 
 .swarm-summary-grid {
@@ -128,10 +161,17 @@ APP_CSS = """
 }
 
 .swarm-metric {
-    border: 1px solid var(--sa-border);
-    background: #111820;
-    border-radius: 6px;
+    border: 1px solid rgba(38, 54, 74, 0.95);
+    background: linear-gradient(180deg, rgba(22, 34, 51, 0.86), rgba(16, 25, 35, 0.9));
+    border-radius: 8px;
     padding: 12px;
+    box-shadow: inset 0 1px 0 rgba(230, 240, 255, 0.035);
+    transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.swarm-metric:hover {
+    border-color: rgba(96, 165, 250, 0.34);
+    transform: translateY(-1px);
 }
 
 .swarm-metric span {
@@ -174,17 +214,18 @@ APP_CSS = """
 .swarm-panel,
 .swarm-export {
     border: 1px solid var(--sa-border) !important;
-    background: #111820 !important;
-    border-radius: 7px !important;
-    box-shadow: none;
+    background: rgba(16, 25, 35, 0.92) !important;
+    border-radius: 8px !important;
+    box-shadow: inset 0 1px 0 rgba(230, 240, 255, 0.03);
 }
 
 .agent-card {
-    border: 1px solid var(--sa-border);
-    background: #111820;
-    border-radius: 8px;
+    border: 1px solid rgba(38, 54, 74, 0.95);
+    background: linear-gradient(180deg, rgba(16, 25, 35, 0.95), rgba(13, 20, 29, 0.96));
+    border-radius: 9px;
     overflow: hidden;
     margin-bottom: 12px;
+    box-shadow: inset 0 1px 0 rgba(230, 240, 255, 0.035);
 }
 
 .agent-card-header,
@@ -221,6 +262,8 @@ APP_CSS = """
     gap: 10px;
     align-items: center;
     padding: 8px 0;
+    border-radius: 7px;
+    transition: background 150ms ease, border-color 150ms ease;
 }
 
 .agent-icon {
@@ -228,7 +271,7 @@ APP_CSS = """
     height: 28px;
     border-radius: 6px;
     border: 1px solid var(--sa-border);
-    background: #1b2430;
+    background: rgba(27, 41, 58, 0.88);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -266,8 +309,8 @@ APP_CSS = """
 }
 
 .agent-item.running {
-    background: #17212b;
-    border: 1px solid var(--sa-border);
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.22);
     border-radius: 7px;
     margin: 2px -6px;
     padding: 8px 6px;
@@ -285,7 +328,7 @@ APP_CSS = """
     font-size: 12px !important;
     line-height: 20px !important;
     color: #d8e3ef !important;
-    background: #0d1117 !important;
+    background: #0b1118 !important;
 }
 
 .swarm-report {
@@ -308,16 +351,27 @@ APP_CSS = """
 }
 
 .audit-actionbar {
-    border: 1px solid var(--sa-border) !important;
-    background: #111820 !important;
-    border-radius: 8px !important;
-    padding: 6px 8px !important;
+    border: 1px solid rgba(38, 54, 74, 0.95) !important;
+    background: linear-gradient(180deg, rgba(16, 25, 35, 0.92), rgba(13, 20, 29, 0.94)) !important;
+    border-radius: 10px !important;
+    padding: 7px 8px !important;
     margin-bottom: 12px !important;
+    box-shadow: inset 0 1px 0 rgba(230, 240, 255, 0.035);
 }
 
 .audit-actionbar .form,
 .audit-actionbar .block {
     min-height: 0 !important;
+}
+
+.audit-actionbar .gradio-row,
+.audit-actionbar .row {
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.repo-input {
+    min-width: min(560px, 100%) !important;
 }
 
 .audit-actionbar label {
@@ -327,14 +381,21 @@ APP_CSS = """
 }
 
 .audit-actionbar input {
-    background: #0f151d !important;
+    background: #111a25 !important;
     border: 1px solid var(--sa-border) !important;
-    border-radius: 6px !important;
+    border-radius: 7px !important;
     color: var(--sa-text) !important;
     font-family: JetBrains Mono, monospace !important;
     min-height: 34px !important;
     height: 34px !important;
     padding: 6px 10px !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.audit-actionbar input:focus {
+    border-color: rgba(96, 165, 250, 0.7) !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.11) !important;
+    background: #132033 !important;
 }
 
 .example-label {
@@ -345,49 +406,68 @@ APP_CSS = """
     letter-spacing: 0.02em;
     text-transform: uppercase;
     height: 34px;
-    padding: 0 2px;
+    padding: 0 8px 0 12px;
 }
 
 .example-chip button {
-    background: #151d27 !important;
-    border: 1px solid var(--sa-border) !important;
-    border-radius: 6px !important;
-    color: var(--sa-muted) !important;
-    font: 600 11px/16px JetBrains Mono, monospace !important;
+    background: rgba(74, 91, 113, 0.72) !important;
+    border: 1px solid rgba(100, 116, 139, 0.34) !important;
+    border-radius: 8px !important;
+    color: var(--sa-text) !important;
+    font: 700 13px/18px Inter, system-ui, sans-serif !important;
     min-width: 0 !important;
-    height: 34px !important;
-    min-height: 34px !important;
-    padding: 0 10px !important;
-    margin: 0 !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 16px !important;
+    margin: 0 4px !important;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
 }
 
 .example-chip button:hover {
-    background: #1b2430 !important;
+    background: rgba(87, 108, 135, 0.92) !important;
+    border-color: rgba(96, 165, 250, 0.36) !important;
     color: var(--sa-text) !important;
+    transform: translateY(-1px);
 }
 
 button.primary,
 .gradio-button.primary {
-    background: #d7dee7 !important;
-    color: #111820 !important;
-    border: 0 !important;
+    background: linear-gradient(180deg, #7bb8ff, var(--sa-primary)) !important;
+    color: #08111d !important;
+    border: 1px solid rgba(147, 197, 253, 0.48) !important;
+    border-radius: 8px !important;
     font-weight: 700 !important;
-    box-shadow: none;
+    box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.08), 0 10px 26px rgba(96, 165, 250, 0.14);
     min-height: 34px !important;
     height: 34px !important;
     padding: 0 14px !important;
+    transition: filter 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+button.primary:hover,
+.gradio-button.primary:hover {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.1), 0 14px 30px rgba(96, 165, 250, 0.18);
 }
 
 .tabs {
     border: 1px solid var(--sa-border) !important;
-    border-radius: 8px !important;
-    background: #0d1117 !important;
+    border-radius: 10px !important;
+    background: rgba(8, 13, 20, 0.74) !important;
     padding: 8px !important;
+    box-shadow: inset 0 1px 0 rgba(230, 240, 255, 0.03);
 }
 
 .tab-nav button {
     border-radius: 7px !important;
     font-weight: 600 !important;
+}
+
+.tab-nav button.selected,
+.tab-nav button[aria-selected="true"] {
+    color: var(--sa-primary) !important;
+    box-shadow: inset 0 -1px 0 var(--sa-primary), 0 10px 24px rgba(96, 165, 250, 0.08);
 }
 
 .swarm-note {
@@ -408,34 +488,35 @@ button.primary,
 
 .audit-console {
     border: 1px solid var(--sa-border);
-    background: #111820;
-    border-radius: 8px;
+    background: rgba(16, 25, 35, 0.92);
+    border-radius: 9px;
     overflow: hidden;
     min-height: 700px;
 }
 
 .findings-list-radio,
 .finding-detail-panel {
-    border: 1px solid var(--sa-border);
-    background: #111820;
+    border: 1px solid rgba(38, 54, 74, 0.95);
+    background: rgba(16, 25, 35, 0.94);
     border-radius: 0;
     overflow: hidden;
 }
 
 .findings-list-radio {
-    height: 540px;
-    max-height: 540px;
+    height: 690px;
+    max-height: 690px;
     overflow-y: auto !important;
     border-right: 0;
     border-radius: 0 0 0 8px;
+    scrollbar-gutter: auto;
 }
 
 .report-toolbar {
     min-height: 41px;
-    border: 1px solid var(--sa-border);
+    border: 1px solid rgba(38, 54, 74, 0.95);
     border-bottom: 0;
-    background: #111820;
-    border-radius: 8px 8px 0 0;
+    background: linear-gradient(180deg, rgba(16, 25, 35, 0.98), rgba(13, 20, 29, 0.96));
+    border-radius: 9px 9px 0 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -443,10 +524,86 @@ button.primary,
     padding: 0 13px;
 }
 
+.report-header-row {
+    border: 1px solid rgba(38, 54, 74, 0.95) !important;
+    border-bottom: 0 !important;
+    background: linear-gradient(180deg, rgba(16, 25, 35, 0.98), rgba(13, 20, 29, 0.96)) !important;
+    border-radius: 9px 9px 0 0 !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 7px 10px !important;
+}
+
+.report-header-row .report-toolbar {
+    border: 0 !important;
+    background: transparent !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+}
+
+.severity-filter-radio {
+    min-width: 360px !important;
+}
+
+.severity-filter-radio .wrap,
+.severity-filter-radio .block,
+.severity-filter-radio fieldset {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+}
+
+.severity-filter-radio label {
+    border: 1px solid transparent !important;
+    border-radius: 6px !important;
+    background: transparent !important;
+    padding: 5px 7px !important;
+    margin: 0 1px !important;
+    color: var(--sa-muted) !important;
+    transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.severity-filter-radio label:hover,
+.severity-filter-radio label:has(input:checked) {
+    background: rgba(22, 34, 51, 0.92) !important;
+    border-color: rgba(96, 165, 250, 0.18) !important;
+    color: var(--sa-text) !important;
+}
+
+.severity-filter-radio label:has(input[value^="Critical"]) span { color: #fecaca !important; }
+.severity-filter-radio label:has(input[value^="High"]) span { color: #fed7aa !important; }
+.severity-filter-radio label:has(input[value^="Medium"]) span { color: #fde68a !important; }
+.severity-filter-radio label:has(input[value^="Low"]) span { color: #a5f3fc !important; }
+
+.severity-filter-radio span {
+    font: 700 10px/14px JetBrains Mono, monospace !important;
+    white-space: nowrap !important;
+}
+
+.severity-filter-radio input {
+    display: none !important;
+}
+
+.report-download button {
+    height: 30px !important;
+    min-height: 30px !important;
+    border-radius: 7px !important;
+    border: 1px solid var(--sa-border) !important;
+    background: rgba(22, 34, 51, 0.82) !important;
+    color: var(--sa-text) !important;
+    font: 700 11px/16px Inter, system-ui, sans-serif !important;
+    padding: 0 10px !important;
+}
+
+.report-download button:hover {
+    border-color: rgba(96, 165, 250, 0.34) !important;
+    background: rgba(27, 41, 58, 0.96) !important;
+}
+
 .report-overview {
-    border: 1px solid var(--sa-border);
+    border: 1px solid rgba(38, 54, 74, 0.95);
     border-top: 0;
-    background: #111820;
+    background: rgba(16, 25, 35, 0.88);
     display: grid;
     grid-template-columns: repeat(2, minmax(120px, 0.7fr)) repeat(2, minmax(170px, 1fr));
     gap: 0;
@@ -484,8 +641,8 @@ button.primary,
 
 .overview-tags span {
     border: 1px solid var(--sa-border);
-    border-radius: 5px;
-    background: #151d27;
+    border-radius: 6px;
+    background: rgba(22, 34, 51, 0.82);
     color: #cbd5e1;
     padding: 3px 6px;
     text-transform: none;
@@ -494,8 +651,8 @@ button.primary,
 .report-body {
     border: 1px solid var(--sa-border) !important;
     border-top: 0 !important;
-    background: #111820 !important;
-    border-radius: 0 0 8px 8px !important;
+    background: rgba(16, 25, 35, 0.94) !important;
+    border-radius: 0 0 9px 9px !important;
     overflow: hidden !important;
 }
 
@@ -519,27 +676,29 @@ button.primary,
 .findings-list-radio .wrap,
 .findings-list-radio .block,
 .findings-list-radio fieldset {
-    background: #111820 !important;
+    background: transparent !important;
     border: 0 !important;
     padding: 0 !important;
 }
 
 .findings-list-radio label {
-    border-bottom: 1px solid var(--sa-border) !important;
-    background: #111820 !important;
-    padding: 11px 13px !important;
+    border-bottom: 1px solid rgba(38, 54, 74, 0.72) !important;
+    background: rgba(16, 25, 35, 0.5) !important;
+    padding: 12px 13px !important;
     margin: 0 !important;
     align-items: flex-start !important;
     cursor: pointer !important;
+    transition: background 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
 .findings-list-radio label:hover {
-    background: #161f29 !important;
+    background: rgba(22, 34, 51, 0.86) !important;
 }
 
 .findings-list-radio input:checked + span,
 .findings-list-radio label:has(input:checked) {
-    background: #1b232d !important;
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.14), rgba(22, 34, 51, 0.86)) !important;
+    box-shadow: inset 2px 0 0 var(--sa-primary);
 }
 
 .findings-list-radio span {
@@ -548,16 +707,26 @@ button.primary,
     white-space: pre-wrap !important;
 }
 
+.findings-list-radio label:has(input[value^="CRIT"]) span { color: #fecaca !important; }
+.findings-list-radio label:has(input[value^="HIGH"]) span { color: #fed7aa !important; }
+.findings-list-radio label:has(input[value^="MED"]) span { color: #fde68a !important; }
+.findings-list-radio label:has(input[value^="LOW"]) span { color: #a5f3fc !important; }
+
+.findings-list-radio label:has(input[value^="LOW"]) {
+    background: rgba(6, 182, 212, 0.055) !important;
+}
+
 .findings-list-radio input {
     margin-top: 4px !important;
     accent-color: var(--sa-primary) !important;
 }
 
 .finding-detail-panel {
-    height: 540px;
-    max-height: 540px;
+    height: 690px;
+    max-height: 690px;
     overflow-y: auto;
     border-radius: 0 0 8px 0;
+    scrollbar-gutter: auto;
 }
 
 .audit-filter-row {
@@ -568,7 +737,7 @@ button.primary,
 }
 
 .filter-pill {
-    background: #202a36;
+    background: rgba(32, 42, 54, 0.9);
     border-radius: 6px;
     padding: 5px 10px;
     color: var(--sa-muted);
@@ -622,20 +791,43 @@ button.primary,
 
 .severity-badge {
     border: 1px solid currentColor;
-    border-radius: 4px;
-    padding: 2px 6px;
+    border-radius: 5px;
+    padding: 2px 7px;
     font: 700 10px/14px JetBrains Mono, monospace;
     color: var(--sa-muted);
+    letter-spacing: 0.01em;
 }
 
 .severity-critical .severity-badge,
-.severity-badge.severity-critical { color: var(--sa-red); }
+.severity-badge.severity-critical {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.13);
+    border-color: rgba(239, 68, 68, 0.55);
+}
 .severity-high .severity-badge,
-.severity-badge.severity-high { color: var(--sa-orange); }
+.severity-badge.severity-high {
+    color: #fed7aa;
+    background: rgba(249, 115, 22, 0.13);
+    border-color: rgba(249, 115, 22, 0.55);
+}
 .severity-medium .severity-badge,
-.severity-badge.severity-medium { color: var(--sa-yellow); }
+.severity-badge.severity-medium {
+    color: #fde68a;
+    background: rgba(234, 179, 8, 0.13);
+    border-color: rgba(234, 179, 8, 0.55);
+}
 .severity-low .severity-badge,
-.severity-badge.severity-low { color: var(--sa-blue); }
+.severity-badge.severity-low {
+    color: #a5f3fc;
+    background: rgba(6, 182, 212, 0.13);
+    border-color: rgba(6, 182, 212, 0.55);
+}
+.severity-info .severity-badge,
+.severity-badge.severity-info {
+    color: #cbd5e1;
+    background: rgba(100, 116, 139, 0.16);
+    border-color: rgba(100, 116, 139, 0.55);
+}
 
 .finding-row-title {
     color: var(--sa-text);
@@ -652,7 +844,7 @@ button.primary,
 
 .finding-detail {
     padding: 22px 22px 26px;
-    background: #111820;
+    background: transparent;
 }
 
 .finding-detail-meta {
@@ -690,7 +882,7 @@ button.primary,
 }
 
 .detail-section p {
-    color: #dce4ee;
+    color: #dbeafe;
     font-size: 13px;
     line-height: 21px;
     margin: 0;
@@ -698,9 +890,9 @@ button.primary,
 
 .detail-section pre,
 .reference-card {
-    border: 1px solid var(--sa-border);
-    background: #1b232d;
-    border-radius: 6px;
+    border: 0;
+    background: rgba(22, 34, 51, 0.48);
+    border-radius: 7px;
 }
 
 .detail-section pre {
@@ -708,6 +900,7 @@ button.primary,
     white-space: pre-wrap;
     font: 500 12px/20px JetBrains Mono, monospace;
     padding: 14px;
+    box-shadow: inset 0 1px 0 rgba(230, 240, 255, 0.03);
 }
 
 .reference-card {
@@ -716,11 +909,23 @@ button.primary,
     justify-content: space-between;
     padding: 12px 14px;
     color: var(--sa-muted);
+    transition: border-color 150ms ease, background 150ms ease;
+}
+
+.reference-card:hover {
+    background: rgba(27, 41, 58, 0.9);
+    border-color: rgba(96, 165, 250, 0.34);
 }
 
 .reference-card code {
     color: #dce4ee;
     font: 600 12px/18px JetBrains Mono, monospace;
+}
+
+.reference-card a {
+    color: var(--sa-text) !important;
+    text-decoration: none !important;
+    font: 700 12px/18px Inter, system-ui, sans-serif;
 }
 
 .audit-empty {
@@ -825,36 +1030,28 @@ def render_report_summary(report: AuditReport) -> str:
 
 
 def render_report_toolbar(report: AuditReport | None) -> str:
-    if report is None:
-        counts: dict[Severity, int] = {}
-        total = 0
-    else:
-        counts = report.severity_summary
-        total = report.displayed_findings_count
-
-    filter_items = []
-    for severity, css_class, label in [
-        (Severity.critical, "dot-critical", "Critical"),
-        (Severity.high, "dot-high", "High"),
-        (Severity.medium, "dot-medium", "Medium"),
-        (Severity.low, "dot-low", "Low"),
-    ]:
-        count = counts.get(severity, 0)
-        if count <= 0:
-            continue
-        filter_items.append(f'<span class="filter-dot {css_class}"></span><span>{label} {count}</span>')
-
-    filters_html = "\n".join(filter_items)
     return f"""
     <section class="report-toolbar">
         <div class="report-title"><span>DOC</span>Audit report</div>
-        <div class="audit-filter-row">
-            <span class="filter-pill active">All {total}</span>
-            {filters_html}
-        </div>
     </section>
-    {format_report_overview_html(report)}
     """
+
+
+def build_severity_filter_choices(report: AuditReport | None) -> list[str]:
+    if report is None:
+        return ["All 0"]
+
+    choices = [f"All {report.displayed_findings_count}"]
+    for severity, label in [
+        (Severity.critical, "Critical"),
+        (Severity.high, "High"),
+        (Severity.medium, "Medium"),
+        (Severity.low, "Low"),
+    ]:
+        count = report.severity_summary.get(severity, 0)
+        if count > 0:
+            choices.append(f"{label} {count}")
+    return choices
 
 
 def render_summary_cards(
@@ -893,6 +1090,8 @@ async def analyze_repo(repo_url: str):
             render_agent_swarm(),
             render_empty_summary(),
             render_report_toolbar(None),
+            gr.update(choices=["All 0"], value="All 0"),
+            format_report_overview_html(None),
             gr.update(choices=[], value=None),
             format_empty_finding_detail_html(),
             None,
@@ -905,6 +1104,8 @@ async def analyze_repo(repo_url: str):
     agent_html = render_agent_swarm(progress)
     summary_html = render_empty_summary()
     report_toolbar_html = render_report_toolbar(None)
+    severity_filter_update = gr.update(choices=["All 0"], value="All 0")
+    report_overview_html = format_report_overview_html(None)
     finding_choice_update = gr.update(choices=[], value=None)
     finding_detail_html = format_empty_finding_detail_html()
     markdown_export = None
@@ -914,7 +1115,10 @@ async def analyze_repo(repo_url: str):
         async for event in AuditGraph().run_with_progress(repo_url.strip()):
             if isinstance(event, AuditReport):
                 report_state = event
-                finding_choices = build_finding_choices(event)
+                filter_choices = build_severity_filter_choices(event)
+                selected_filter = filter_choices[0]
+                severity_filter_update = gr.update(choices=filter_choices, value=selected_filter)
+                finding_choices = build_finding_choices(event, selected_filter)
                 finding_choice_update = gr.update(
                     choices=finding_choices,
                     value=finding_choices[0] if finding_choices else None,
@@ -922,6 +1126,7 @@ async def analyze_repo(repo_url: str):
                 finding_detail_html = format_finding_detail_html(event, 0)
                 summary_html = render_report_summary(event)
                 report_toolbar_html = render_report_toolbar(event)
+                report_overview_html = format_report_overview_html(event)
                 markdown_export, json_export = write_report_exports(event)
             else:
                 progress.append(event)
@@ -931,6 +1136,8 @@ async def analyze_repo(repo_url: str):
                 agent_html,
                 summary_html,
                 report_toolbar_html,
+                severity_filter_update,
+                report_overview_html,
                 finding_choice_update,
                 finding_detail_html,
                 markdown_export,
@@ -944,6 +1151,8 @@ async def analyze_repo(repo_url: str):
             render_agent_swarm(progress),
             render_empty_summary(),
             render_report_toolbar(None),
+            gr.update(choices=["All 0"], value="All 0"),
+            format_report_overview_html(None),
             gr.update(choices=[], value=None),
             format_empty_finding_detail_html(),
             None,
@@ -970,17 +1179,47 @@ def build_finding_rows(report: AuditReport | None) -> list[list[str]]:
     return rows
 
 
-def build_finding_choices(report: AuditReport | None) -> list[str]:
+def _severity_from_filter(filter_label: str | None) -> Severity | None:
+    if not filter_label:
+        return None
+    normalized = filter_label.lower()
+    for severity in Severity:
+        if normalized.startswith(severity.value.lower()):
+            return severity
+    return None
+
+
+def _severity_marker(severity: Severity) -> str:
+    return {
+        Severity.critical: "CRIT",
+        Severity.high: "HIGH",
+        Severity.medium: "MED",
+        Severity.low: "LOW",
+    }.get(severity, "INFO")
+
+
+def build_finding_choices(report: AuditReport | None, severity_filter: str | None = None) -> list[str]:
     if report is None:
         return []
 
+    selected_severity = _severity_from_filter(severity_filter)
     choices: list[str] = []
     for index, finding in enumerate(report.findings, start=1):
+        if selected_severity is not None and finding.severity != selected_severity:
+            continue
+        marker = _severity_marker(finding.severity)
         choices.append(
-            f"F-{index:03d}  [{finding.severity.value}]  {finding.title}\n"
+            f"{marker:<4}  F-{index:03d}  {finding.title}\n"
             f"{finding.file_path}:{finding.line_start}  |  {finding.agent_source}"
         )
     return choices
+
+
+def filter_findings(severity_filter: str | None, report: AuditReport | None):
+    choices = build_finding_choices(report, severity_filter)
+    selected = choices[0] if choices else None
+    detail_html = select_finding(selected, report) if selected else format_empty_finding_detail_html()
+    return gr.update(choices=choices, value=selected), detail_html
 
 
 def select_finding(choice: str | None, report: AuditReport | None) -> str:
@@ -989,10 +1228,13 @@ def select_finding(choice: str | None, report: AuditReport | None) -> str:
 
     row_index = 0
     if choice:
-        first_token = choice.split(maxsplit=1)[0]
-        if first_token.startswith("F-"):
+        finding_token = next(
+            (token for token in choice.replace("\n", " ").split() if token.startswith("F-")),
+            "",
+        )
+        if finding_token:
             try:
-                row_index = int(first_token.removeprefix("F-")) - 1
+                row_index = int(finding_token.removeprefix("F-")) - 1
             except ValueError:
                 row_index = 0
 
@@ -1086,14 +1328,20 @@ def build_app() -> gr.Blocks:
                         repo_url = gr.Textbox(
                             label="",
                             placeholder="repo  https://github.com/owner/repo",
-                            scale=5,
+                            scale=8,
+                            min_width=420,
                             show_label=False,
                             elem_classes=["repo-input"],
                         )
-                        analyze = gr.Button("Analyze", variant="primary", scale=1)
+                        analyze = gr.Button("Analyze", variant="primary", scale=0, min_width=112)
                         gr.HTML('<div class="example-label">Examples</div>', scale=0)
                         for example_name, example_url in EXAMPLE_REPOS.items():
-                            example_button = gr.Button(example_name, scale=1, elem_classes=["example-chip"])
+                            example_button = gr.Button(
+                                example_name,
+                                scale=0,
+                                min_width=98,
+                                elem_classes=["example-chip"],
+                            )
                             example_button.click(lambda url=example_url: url, outputs=repo_url)
 
                 summary_output = gr.HTML(render_empty_summary())
@@ -1109,7 +1357,34 @@ def build_app() -> gr.Blocks:
                             elem_classes=["swarm-panel", "swarm-progress"],
                         )
                     with gr.Column(scale=3):
-                        report_toolbar = gr.HTML(render_report_toolbar(None))
+                        with gr.Row(elem_classes=["report-header-row"]):
+                            report_toolbar = gr.HTML(render_report_toolbar(None), scale=1)
+                            severity_filter = gr.Radio(
+                                choices=["All 0"],
+                                value="All 0",
+                                interactive=True,
+                                show_label=False,
+                                scale=0,
+                                min_width=360,
+                                elem_classes=["severity-filter-radio"],
+                            )
+                            markdown_export = gr.DownloadButton(
+                                "Markdown",
+                                value=None,
+                                size="sm",
+                                scale=0,
+                                min_width=96,
+                                elem_classes=["report-download"],
+                            )
+                            json_export = gr.DownloadButton(
+                                "JSON",
+                                value=None,
+                                size="sm",
+                                scale=0,
+                                min_width=76,
+                                elem_classes=["report-download"],
+                            )
+                        report_overview = gr.HTML(format_report_overview_html(None))
                         with gr.Row(equal_height=True, elem_classes=["report-body"]):
                             with gr.Column(scale=1):
                                 finding_selector = gr.Radio(
@@ -1125,10 +1400,6 @@ def build_app() -> gr.Blocks:
                                     elem_classes=["swarm-panel", "swarm-report"],
                                 )
 
-                with gr.Row(elem_classes=["swarm-export"]):
-                    markdown_export = gr.File(label="Markdown Report")
-                    json_export = gr.File(label="JSON Report")
-
                 analyze.click(
                     analyze_repo,
                     inputs=repo_url,
@@ -1137,12 +1408,19 @@ def build_app() -> gr.Blocks:
                         agent_output,
                         summary_output,
                         report_toolbar,
+                        severity_filter,
+                        report_overview,
                         finding_selector,
                         finding_detail,
                         markdown_export,
                         json_export,
                         report_state,
                     ],
+                )
+                severity_filter.change(
+                    filter_findings,
+                    inputs=[severity_filter, report_state],
+                    outputs=[finding_selector, finding_detail],
                 )
                 finding_selector.change(select_finding, inputs=[finding_selector, report_state], outputs=finding_detail)
 
@@ -1168,8 +1446,14 @@ def build_app() -> gr.Blocks:
 
 def launch_app() -> None:
     server_name = os.getenv("GRADIO_SERVER_NAME", "0.0.0.0")
-    server_port = int(os.getenv("PORT", os.getenv("GRADIO_SERVER_PORT", "7860")))
-    build_app().queue().launch(server_name=server_name, server_port=server_port)
+    configured_port = os.getenv("PORT") or os.getenv("GRADIO_SERVER_PORT")
+    server_port = int(configured_port or "7860")
+    try:
+        build_app().queue().launch(server_name=server_name, server_port=server_port)
+    except OSError:
+        if configured_port:
+            raise
+        build_app().queue().launch(server_name=server_name, server_port=None)
 
 
 if __name__ == "__main__":
