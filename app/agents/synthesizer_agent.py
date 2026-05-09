@@ -13,7 +13,13 @@ MAX_DISPLAY_FINDINGS_BY_AGENT = {
     "Security Agent": 20,
     "Performance Agent": 12,
     "Quality Agent": 10,
-    "Docs Agent": 8,
+    "Docs Agent": 12,
+}
+MAX_DISPLAY_BY_SEVERITY = {
+    Severity.critical: None,
+    Severity.high: 30,
+    Severity.medium: 18,
+    Severity.low: 12,
 }
 
 SECURITY_CATEGORIES = {
@@ -127,16 +133,47 @@ class SynthesizerAgent:
     ) -> tuple[list[Finding], int, list[str]]:
         selected: list[Finding] = []
         selected_by_agent = {agent_name: 0 for agent_name in agent_counts}
+        selected_by_severity = {severity: 0 for severity in Severity}
 
         for finding in findings:
             agent_limit = MAX_DISPLAY_FINDINGS_BY_AGENT.get(finding.agent_source, MAX_DISPLAY_FINDINGS)
+            severity_limit = MAX_DISPLAY_BY_SEVERITY[finding.severity]
+            if severity_limit is not None and selected_by_severity[finding.severity] >= severity_limit:
+                continue
             if selected_by_agent.get(finding.agent_source, 0) >= agent_limit:
                 continue
             if len(selected) >= MAX_DISPLAY_FINDINGS:
                 break
             selected.append(finding)
             selected_by_agent[finding.agent_source] = selected_by_agent.get(finding.agent_source, 0) + 1
+            selected_by_severity[finding.severity] += 1
 
+        if not any(finding.severity == Severity.low for finding in selected):
+            low_findings = [finding for finding in findings if finding.severity == Severity.low]
+            low_slots = MAX_DISPLAY_BY_SEVERITY[Severity.low] or 0
+            for finding in low_findings[:low_slots]:
+                if finding in selected:
+                    continue
+                if len(selected) >= MAX_DISPLAY_FINDINGS:
+                    replace_index = self._replaceable_display_index(selected)
+                    if replace_index is None:
+                        break
+                    replaced = selected[replace_index]
+                    selected_by_agent[replaced.agent_source] = max(
+                        0,
+                        selected_by_agent.get(replaced.agent_source, 0) - 1,
+                    )
+                    selected_by_severity[replaced.severity] = max(
+                        0,
+                        selected_by_severity[replaced.severity] - 1,
+                    )
+                    selected[replace_index] = finding
+                else:
+                    selected.append(finding)
+                selected_by_agent[finding.agent_source] = selected_by_agent.get(finding.agent_source, 0) + 1
+                selected_by_severity[finding.severity] += 1
+
+        selected.sort(key=self._sort_key)
         hidden_count = max(0, len(findings) - len(selected))
         warnings: list[str] = []
         if hidden_count:
@@ -152,6 +189,13 @@ class SynthesizerAgent:
                 warnings.append(f"{agent_name}: displaying {displayed_count} of {total_count} findings.")
 
         return selected, hidden_count, warnings
+
+    def _replaceable_display_index(self, selected: list[Finding]) -> int | None:
+        for severity in (Severity.low, Severity.medium):
+            for index in range(len(selected) - 1, -1, -1):
+                if selected[index].severity == severity:
+                    return index
+        return None
 
     def _sort_key(self, finding: Finding) -> tuple[int, int, str, int]:
         test_file_penalty = 1 if self._is_test_file(finding.file_path) and finding.severity != Severity.critical else 0

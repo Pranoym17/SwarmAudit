@@ -29,10 +29,10 @@ async def test_synthesizer_preserves_totals_when_display_is_truncated():
     report = await SynthesizerAgent().synthesize(repo, [output])
 
     assert report.total_findings_count == 20
-    assert report.displayed_findings_count == 8
-    assert report.hidden_findings_count == 12
+    assert report.displayed_findings_count == 12
+    assert report.hidden_findings_count == 8
     assert report.agent_finding_counts["Docs Agent"] == 20
-    assert any("displaying 8 of 20" in warning for warning in report.warnings)
+    assert any("displaying 12 of 20" in warning for warning in report.warnings)
 
 
 @pytest.mark.anyio
@@ -46,6 +46,26 @@ async def test_synthesizer_keeps_high_severity_before_low_findings():
     report = await SynthesizerAgent().synthesize(repo, outputs)
 
     assert report.findings[0].severity == Severity.high
+
+
+@pytest.mark.anyio
+async def test_synthesizer_keeps_low_findings_visible_when_report_is_noisy():
+    outputs = [
+        AgentOutput(
+            agent_name="Performance Agent",
+            findings=[make_finding(index, "Performance Agent", Severity.high) for index in range(45)],
+        ),
+        AgentOutput(
+            agent_name="Docs Agent",
+            findings=[make_finding(index + 100, "Docs Agent", Severity.low) for index in range(20)],
+        ),
+    ]
+    repo = RepoScanResult(repo_url="https://github.com/example/project", local_path=".", files=[], skipped_files=0)
+
+    report = await SynthesizerAgent().synthesize(repo, outputs)
+
+    assert any(finding.severity == Severity.low for finding in report.findings)
+    assert sum(1 for finding in report.findings if finding.severity == Severity.low) <= 12
 
 
 @pytest.mark.anyio

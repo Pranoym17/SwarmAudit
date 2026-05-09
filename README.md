@@ -1,4 +1,4 @@
----
+ ---
 title: SwarmAudit
 sdk: gradio
 sdk_version: 6.14.0
@@ -9,62 +9,159 @@ license: mit
 
 # SwarmAudit
 
-Paste any public GitHub URL. Get a structured multi-agent code audit in minutes.
+SwarmAudit is a multi-agent production-readiness scanner for AI-generated code.
 
-SwarmAudit is an AI-agent code review system for the AMD Developer Hackathon. It clones a public repository, filters and chunks source files, runs specialized review agents, and returns a severity-ranked report with file references and suggested fixes.
+Paste a public GitHub repository URL and SwarmAudit clones the repo, maps source files, runs specialized static and optional LLM-enriched agents, then returns a prioritized audit report with severity filters, file references, remediation guidance, scores, and Markdown/JSON exports.
 
-The local MVP runs in mock-first mode, so the demo works without waiting for ROCm, vLLM, or MI300X infrastructure. The inference layer is designed to switch to a vLLM-compatible Qwen2.5-Coder endpoint later.
+The project was built for the AMD Developer Hackathon Track 1: AI Agents & Agentic Workflows. It is designed to run reliably in mock/static mode for public demos and switch to AMD Developer Cloud + ROCm + vLLM + Qwen2.5-Coder when GPU credits are available.
 
-## MVP
+## Why It Exists
 
-SwarmAudit currently runs with a mock-first LLM interface so the demo is not blocked by ROCm, vLLM, or AMD MI300X setup. The current graph is:
+AI coding tools are fast, but they often miss production concerns: broken security assumptions, unsafe configuration, missing timeouts, swallowed exceptions, weak observability, dependency risk, and GPU portability issues. SwarmAudit turns those review concerns into a coordinated agent workflow.
+
+The goal is not to replace linters. The goal is to give teams a fast second-pass review for code that might be functionally correct but not production-ready.
+
+## Current Status
+
+Working now:
+
+- Gradio dashboard with agent progress, activity log, summary cards, clickable severity filters, finding inspector, and report downloads.
+- FastAPI backend with `/health`, `/llm/health`, and `/audit`.
+- GitHub repo cloning with file limits and Windows-safe temp paths.
+- Static multi-agent audit path that works without GPU access.
+- Optional vLLM/Qwen enrichment behind config.
+- LLM Diagnostics tab for `/v1/models` and chat-completion checks.
+- Benchmark tab for latency checks against mock or vLLM backends.
+- Markdown and JSON report export.
+- Hugging Face Spaces entrypoint through root `app.py`.
+- AMD/vLLM runbook for credit-safe MI300X testing.
+
+Validated during development:
+
+- Hugging Face Space running in mock/static mode.
+- AMD Developer Cloud GPU instance with ROCm visible through `rocm-smi`.
+- vLLM serving `Qwen/Qwen2.5-Coder-32B-Instruct` through an OpenAI-compatible `/v1` API.
+- SwarmAudit Diagnostics and Benchmark tabs connected successfully to the AMD-hosted vLLM endpoint.
+
+## Agent Workflow
 
 ```text
-GitHub URL -> Crawler -> Chunker -> [Security Agent + Performance Agent + Quality Agent + Docs Agent] -> Synthesizer -> Report
+GitHub URL
+  -> Crawler Agent
+  -> Chunker
+  -> Parallel Analysis Agents
+       Security
+       Performance
+       Quality
+       Docs
+       Config
+       Dependency
+       Error Handling
+       Observability
+       CUDA-to-ROCm
+  -> Synthesizer
+  -> Scores + Roadmap + Report
 ```
 
-## Demo Status
+## Agents
 
-Working locally:
+- **Security Agent**: hardcoded secrets, disabled TLS verification, dynamic execution, insecure dependency version ranges.
+- **Performance Agent**: missing HTTP timeouts, blocking work in async paths, nested loops, repeated file reads, synchronous hot-path operations.
+- **Quality Agent**: long functions, high branch density, very short identifiers, TODO/FIXME/HACK comments, maintainability signals.
+- **Docs Agent**: README gaps, missing install/run/test guidance, public Python symbols without docstrings.
+- **Config Agent**: production-dangerous defaults such as debug mode, open CORS, disabled TLS checks, weak secrets, unsafe config patterns.
+- **Dependency Agent**: parses manifests and optionally queries OSV.dev for CVE data when enabled.
+- **Error Handling Agent**: swallowed exceptions, missing timeouts, missing retry/fallback behavior, resilience gaps.
+- **Observability Agent**: `print` logging, sensitive data in logs, missing health checks, missing metrics/tracing signals.
+- **CUDA-to-ROCm Agent**: flags CUDA/NVIDIA-specific assumptions such as `torch.cuda`, `.cuda()`, `pynvml`, `nvidia-smi`, `cudaMalloc`, and `cudaMemcpy`, then suggests ROCm/generic alternatives.
+- **Synthesizer Agent**: deduplicates findings, ranks by severity, computes scores, groups categories, and builds the remediation roadmap.
 
-- Gradio UI with live agent progress
-- Gradio Diagnostics tab for mock/vLLM connection checks
-- Gradio Benchmark tab scaffold for mock/vLLM latency probes
-- FastAPI `/health` and `/audit` endpoints
-- FastAPI `/llm/health` endpoint
-- GitHub clone and repo scan on public repos
-- Four analysis agents plus synthesizer
-- Prioritized report display with full raw finding totals preserved
-- Markdown and JSON report downloads
-- Hugging Face Spaces-style `app.py` entrypoint
+## Report Output
 
-Smoke-tested repos:
+Each audit report includes:
 
-- `https://github.com/psf/requests`
-- `https://github.com/pallets/itsdangerous`
+- Repository URL
+- scanned/skipped file counts
+- severity summary
+- total/displayed/hidden finding counts
+- agent finding counts
+- category summary
+- security score
+- production readiness score
+- remediation roadmap:
+  - This Week
+  - Next Sprint
+  - Backlog
+- structured findings with:
+  - title
+  - severity
+  - file path and line range
+  - explanation
+  - why it matters
+  - suggested fix
+  - agent source
+  - category
+  - confidence when available
+- Markdown export
+- JSON export
 
-Example output is available in [`examples/requests_report_excerpt.md`](examples/requests_report_excerpt.md).
+The UI displays a prioritized subset for readability while preserving full totals in the structured report.
 
-## Architecture
+## AMD + Qwen Integration
 
-```mermaid
-flowchart LR
-    U[User enters GitHub URL] --> API[FastAPI / Gradio]
-    API --> C[Crawler Agent]
-    C --> F[File Filter]
-    F --> K[Chunker]
-    K --> S[Security Agent]
-    K --> P[Performance Agent]
-    K --> Q[Quality Agent]
-    K --> D[Docs Agent]
-    S --> Y[Synthesizer Agent]
-    P --> Y
-    Q --> Y
-    D --> Y
-    Y --> R[Structured Audit Report]
+SwarmAudit uses Qwen through an OpenAI-compatible vLLM endpoint. The app does not install or run vLLM directly; it calls vLLM over HTTP.
+
+The AMD path improves the project by allowing the same agent workflow to use a stronger code model on AMD GPU infrastructure:
+
+- AMD Developer Cloud provides the GPU runtime.
+- ROCm exposes AMD GPU acceleration.
+- vLLM serves Qwen2.5-Coder as an OpenAI-compatible API.
+- SwarmAudit uses that endpoint for Diagnostics, Benchmark, and optional LLM enrichment.
+- Static agents remain the reliable fallback if the endpoint is unavailable.
+
+Default public/demo mode stays cheap and reliable:
+
+```text
+LLM_PROVIDER=mock
+ENABLE_LLM_ENRICHMENT=false
 ```
 
-The graph is intentionally modular: each agent returns strict Pydantic findings, and the synthesizer merges, deduplicates, prioritizes, and formats the final report.
+Credit-safe AMD test mode:
+
+```text
+LLM_PROVIDER=vllm
+LLM_BASE_URL=http://YOUR_VLLM_ENDPOINT/v1
+LLM_API_KEY=swarm-audit-demo-key
+LLM_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct
+ENABLE_LLM_ENRICHMENT=true
+MAX_FILES=100
+MAX_FILE_SIZE_KB=150
+MAX_CHARS_PER_CHUNK=8000
+MAX_LLM_CHUNKS=2
+```
+
+See [`AMD_VLLM_RUNBOOK.md`](AMD_VLLM_RUNBOOK.md) for the exact AMD setup and shutdown checklist.
+
+## Hugging Face Spaces
+
+SwarmAudit is deployable as a Gradio Space using the root `app.py`.
+
+Recommended public Space settings:
+
+- SDK: Gradio
+- Hardware: CPU basic
+- App file: `app.py`
+- Environment:
+
+```text
+LLM_PROVIDER=mock
+ENABLE_LLM_ENRICHMENT=false
+ENABLE_DEPENDENCY_CVE_LOOKUP=false
+```
+
+Keep the public Space in mock/static mode unless a stable vLLM endpoint is available for the full judging window. Do not expose private endpoint keys in the README or UI.
+
+See [`HF_SPACES_DEPLOY.md`](HF_SPACES_DEPLOY.md) for the deployment checklist.
 
 ## Quick Start
 
@@ -74,146 +171,134 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+Run the Gradio app:
+
+```bash
+python app.py
+```
+
+Open the URL printed by Gradio. The app tries port `7860` first and falls back to another local Gradio port if `7860` is busy.
+
 Run the FastAPI backend:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-If port 8000 is busy on Windows, use:
+If port `8000` is busy:
 
 ```bash
 uvicorn app.main:app --reload --port 8001
 ```
 
-Health check:
+Health checks:
 
 ```bash
 curl http://127.0.0.1:8000/health
-```
-
-LLM health check:
-
-```bash
 curl http://127.0.0.1:8000/llm/health
 ```
 
-Audit endpoint:
+Audit API:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/audit \
   -H "Content-Type: application/json" \
-  -d '{"repo_url":"https://github.com/psf/requests"}'
+  -d '{"repo_url":"https://github.com/pallets/itsdangerous"}'
 ```
 
-Run the Gradio demo:
+Recommended first test repos:
 
-```bash
-python -m app.ui.gradio_app
+```text
+https://github.com/pallets/itsdangerous
+https://github.com/psf/requests
 ```
-
-For Hugging Face Spaces-style startup:
-
-```bash
-python app.py
-```
-
-The Gradio app includes example repos, a live agent progress panel, a structured markdown report panel, and Markdown/JSON report downloads.
-The launcher binds to `0.0.0.0` and uses `PORT` when provided, which matches hosted Gradio deployment expectations.
 
 ## Configuration
 
-Copy `.env.example` to `.env` for local overrides. Default inference mode is:
+Copy `.env.example` to `.env` for local overrides.
+
+Important settings:
 
 ```text
 LLM_PROVIDER=mock
-```
-
-Later, set `LLM_PROVIDER=vllm` and point `LLM_BASE_URL` at an OpenAI-compatible vLLM endpoint running Qwen2.5-Coder.
-Use the Gradio Diagnostics tab or `/llm/health` endpoint to confirm vLLM connectivity before running audits.
-
-LLM enrichment is off by default:
-
-```text
+LLM_BASE_URL=http://localhost:9000/v1
+LLM_API_KEY=not-needed-for-mock
+LLM_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct
 ENABLE_LLM_ENRICHMENT=false
-```
-
-Turn it on only after the Diagnostics tab confirms the vLLM endpoint is healthy.
-When enabled, SwarmAudit keeps static rules as deterministic guardrails and uses the LLM only to enrich selected chunks with additional validated findings. Security, Performance, Quality, and Docs agents all use the same safe enrichment path and fall back to static findings if the LLM fails.
-
-For the first AMD credit-backed test, keep enrichment off until diagnostics pass, then use conservative limits:
-
-```text
-LLM_PROVIDER=vllm
-ENABLE_LLM_ENRICHMENT=true
-MAX_FILES=100
-MAX_FILE_SIZE_KB=150
-MAX_CHARS_PER_CHUNK=8000
-MAX_LLM_CHUNKS=2
-```
-
-Key safety limits:
-
-```text
+ENABLE_DEPENDENCY_CVE_LOOKUP=false
+MAX_LLM_CHUNKS=5
+LLM_TIMEOUT_SECONDS=120
 MAX_FILES=200
 MAX_FILE_SIZE_KB=250
 MAX_CHARS_PER_CHUNK=12000
+CLONE_TIMEOUT_SECONDS=60
 CLONE_BASE_DIR=.swarm_audit_tmp
 ```
 
-## Report Schema
+Dependency CVE lookup is off by default so demos do not depend on network calls beyond cloning the target repo:
 
-Each finding includes:
+```text
+ENABLE_DEPENDENCY_CVE_LOOKUP=false
+```
 
-- title
-- severity: CRITICAL, HIGH, MEDIUM, LOW
-- file path and line range
-- description
-- why it matters
-- suggested fix
-- agent source
+Enable it only when you want OSV.dev CVE checks:
 
-Reports preserve full finding totals while displaying a prioritized subset for readability. High-severity findings are shown first, repeated low-severity findings are summarized, and warnings explain when lower-priority findings are hidden from the demo report.
-
-## Current Agents
-
-- Security Agent: flags hardcoded secrets, disabled TLS verification, and dynamic code execution.
-- Performance Agent: flags HTTP calls without timeouts, blocking sleep inside async functions, nested loops, file reads in loops, and synchronous Node.js filesystem calls.
-- Quality Agent: flags long functions, high branch density, large source sections, unresolved TODO/FIXME/HACK comments, and very short symbol names.
-- Docs Agent: flags incomplete README guidance and public Python symbols missing docstrings.
-- Synthesizer Agent: deduplicates findings, sorts by severity, and builds the final report.
-
-## Hugging Face Spaces
-
-SwarmAudit is ready to launch as a Gradio Space with the root `app.py` entrypoint. Keep `LLM_PROVIDER=mock` for a reliable public demo, then switch to `LLM_PROVIDER=vllm` when an AMD MI300X-hosted Qwen2.5-Coder endpoint is available.
-
-See [`HF_SPACES_DEPLOY.md`](HF_SPACES_DEPLOY.md) for the deployment checklist.
-See [`AMD_VLLM_RUNBOOK.md`](AMD_VLLM_RUNBOOK.md) for the credit-safe AMD/vLLM setup flow.
-
-Recommended Space settings:
-
-- SDK: Gradio
-- App file: `app.py`
-- Python: 3.11 or newer
-- Default env: `LLM_PROVIDER=mock`
-
-## AMD MI300X Roadmap
-
-The current code path is intentionally mock-first, so the public demo remains reliable even without GPU access. The AMD/vLLM path is HTTP-only: no vLLM package is required in this app, and no code changes should be needed after the endpoint is available.
-
-1. Start a Qwen2.5-Coder vLLM server on AMD Developer Cloud.
-2. Expose OpenAI-compatible `/v1/models` and `/v1/chat/completions` endpoints.
-3. Set `LLM_PROVIDER=vllm`, `LLM_BASE_URL`, `LLM_API_KEY`, and `LLM_MODEL`.
-4. Run Diagnostics before enabling LLM enrichment.
-5. Enable enrichment with `MAX_LLM_CHUNKS=2` for the first credit-safe audits.
-6. Run the Benchmark tab and record MI300X latency/throughput numbers.
-
-The Benchmark tab is already scaffolded. In mock mode it validates the UI path; in vLLM mode it measures endpoint latency and provides a place to record MI300X numbers for the final demo.
+```text
+ENABLE_DEPENDENCY_CVE_LOOKUP=true
+```
 
 ## Tests
 
 ```bash
-python -m pytest
+python -m compileall -q app tests app.py
+python -m pytest --basetemp=.tmp_pytest -p no:cacheprovider
 ```
 
+Current local suite:
+
+```text
+104 tests
+```
+
+## Project Structure
+
+```text
+app.py                         # Hugging Face/Gradio entrypoint
+app/
+  main.py                      # FastAPI API
+  config.py                    # environment settings
+  schemas.py                   # Pydantic models
+  agents/
+    graph.py                   # orchestration
+    security_agent.py
+    performance_agent.py
+    quality_agent.py
+    docs_agent.py
+    config_agent.py
+    dependency_agent.py
+    error_handling_agent.py
+    observability_agent.py
+    cuda_migration_agent.py
+    synthesizer_agent.py
+    llm_enrichment.py
+  services/
+    llm_client.py
+    benchmark.py
+    report_formatter.py
+  ui/
+    gradio_app.py
+tests/
+examples/
+```
+
+## Submission Notes
+
+For the hackathon submission, highlight:
+
+- agentic workflow with multiple specialized agents
+- Qwen2.5-Coder integration through vLLM
+- AMD Developer Cloud + ROCm validation
+- Hugging Face Space deployment
+- practical business value: production readiness for AI-generated code
+- originality: combining security, operations, dependency, and CUDA-to-ROCm portability checks in one audit workflow
 

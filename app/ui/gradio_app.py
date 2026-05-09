@@ -410,15 +410,15 @@ APP_CSS = """
 }
 
 .example-chip button {
-    background: rgba(74, 91, 113, 0.72) !important;
-    border: 1px solid rgba(100, 116, 139, 0.34) !important;
-    border-radius: 8px !important;
+    background: rgba(74, 91, 113, 0.82) !important;
+    border: 1px solid rgba(100, 116, 139, 0.42) !important;
+    border-radius: 12px !important;
     color: var(--sa-text) !important;
     font: 700 13px/18px Inter, system-ui, sans-serif !important;
     min-width: 0 !important;
     height: 40px !important;
     min-height: 40px !important;
-    padding: 0 16px !important;
+    padding: 0 20px !important;
     margin: 0 4px !important;
     transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
 }
@@ -570,10 +570,10 @@ button.primary:hover,
     color: var(--sa-text) !important;
 }
 
-.severity-filter-radio label:has(input[value^="Critical"]) span { color: #fecaca !important; }
-.severity-filter-radio label:has(input[value^="High"]) span { color: #fed7aa !important; }
-.severity-filter-radio label:has(input[value^="Medium"]) span { color: #fde68a !important; }
-.severity-filter-radio label:has(input[value^="Low"]) span { color: #a5f3fc !important; }
+.severity-filter-radio label:has(input[value^="Critical"]) span { color: var(--sa-red) !important; }
+.severity-filter-radio label:has(input[value^="High"]) span { color: var(--sa-orange) !important; }
+.severity-filter-radio label:has(input[value^="Medium"]) span { color: var(--sa-yellow) !important; }
+.severity-filter-radio label:has(input[value^="Low"]) span { color: var(--sa-blue) !important; }
 
 .severity-filter-radio span {
     font: 700 10px/14px JetBrains Mono, monospace !important;
@@ -673,6 +673,13 @@ button.primary:hover,
     margin-right: 6px;
 }
 
+.report-subnote {
+    color: var(--sa-muted);
+    font: 500 10px/14px JetBrains Mono, monospace;
+    margin-top: 1px;
+    opacity: 0.74;
+}
+
 .findings-list-radio .wrap,
 .findings-list-radio .block,
 .findings-list-radio fieldset {
@@ -707,10 +714,10 @@ button.primary:hover,
     white-space: pre-wrap !important;
 }
 
-.findings-list-radio label:has(input[value^="CRIT"]) span { color: #fecaca !important; }
-.findings-list-radio label:has(input[value^="HIGH"]) span { color: #fed7aa !important; }
-.findings-list-radio label:has(input[value^="MED"]) span { color: #fde68a !important; }
-.findings-list-radio label:has(input[value^="LOW"]) span { color: #a5f3fc !important; }
+.findings-list-radio label:has(input[value^="CRIT"]) span { color: var(--sa-red) !important; }
+.findings-list-radio label:has(input[value^="HIGH"]) span { color: var(--sa-orange) !important; }
+.findings-list-radio label:has(input[value^="MED"]) span { color: var(--sa-yellow) !important; }
+.findings-list-radio label:has(input[value^="LOW"]) span { color: var(--sa-blue) !important; }
 
 .findings-list-radio label:has(input[value^="LOW"]) {
     background: rgba(6, 182, 212, 0.055) !important;
@@ -727,6 +734,12 @@ button.primary:hover,
     overflow-y: auto;
     border-radius: 0 0 8px 0;
     scrollbar-gutter: auto;
+}
+
+.swarm-report .finding-detail-panel {
+    border: 0;
+    background: transparent;
+    border-radius: 0;
 }
 
 .audit-filter-row {
@@ -1032,7 +1045,10 @@ def render_report_summary(report: AuditReport) -> str:
 def render_report_toolbar(report: AuditReport | None) -> str:
     return f"""
     <section class="report-toolbar">
-        <div class="report-title"><span>DOC</span>Audit report</div>
+        <div>
+            <div class="report-title"><span>DOC</span>Audit report</div>
+            <div class="report-subnote">Visible rows prioritize important findings; downloads keep full report data.</div>
+        </div>
     </section>
     """
 
@@ -1041,14 +1057,18 @@ def build_severity_filter_choices(report: AuditReport | None) -> list[str]:
     if report is None:
         return ["All 0"]
 
-    choices = [f"All {report.displayed_findings_count}"]
+    displayed_counts = {severity: 0 for severity in Severity}
+    for finding in report.findings:
+        displayed_counts[finding.severity] += 1
+
+    choices = [f"All {len(report.findings)}"]
     for severity, label in [
         (Severity.critical, "Critical"),
         (Severity.high, "High"),
         (Severity.medium, "Medium"),
         (Severity.low, "Low"),
     ]:
-        count = report.severity_summary.get(severity, 0)
+        count = displayed_counts.get(severity, 0)
         if count > 0:
             choices.append(f"{label} {count}")
     return choices
@@ -1209,7 +1229,7 @@ def build_finding_choices(report: AuditReport | None, severity_filter: str | Non
             continue
         marker = _severity_marker(finding.severity)
         choices.append(
-            f"{marker:<4}  F-{index:03d}  {finding.title}\n"
+            f"{marker:<4}  {finding.title}\n"
             f"{finding.file_path}:{finding.line_start}  |  {finding.agent_source}"
         )
     return choices
@@ -1228,15 +1248,9 @@ def select_finding(choice: str | None, report: AuditReport | None) -> str:
 
     row_index = 0
     if choice:
-        finding_token = next(
-            (token for token in choice.replace("\n", " ").split() if token.startswith("F-")),
-            "",
-        )
-        if finding_token:
-            try:
-                row_index = int(finding_token.removeprefix("F-")) - 1
-            except ValueError:
-                row_index = 0
+        choices = build_finding_choices(report)
+        if choice in choices:
+            row_index = choices.index(choice)
 
     return format_finding_detail_html(report, row_index)
 
@@ -1339,7 +1353,7 @@ def build_app() -> gr.Blocks:
                             example_button = gr.Button(
                                 example_name,
                                 scale=0,
-                                min_width=98,
+                                min_width=124,
                                 elem_classes=["example-chip"],
                             )
                             example_button.click(lambda url=example_url: url, outputs=repo_url)

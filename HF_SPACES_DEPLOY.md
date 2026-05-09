@@ -1,46 +1,31 @@
-# Hugging Face Spaces Deployment Checklist
+# Hugging Face Spaces Deployment
 
-## Local Preflight
+Use this checklist when updating the SwarmAudit Space.
 
-Run these from the repo root:
+## Recommended Public Demo Mode
 
-```bash
-pip install -r requirements.txt
-python -m pytest
-python app.py
-```
-
-Open:
+Keep the public Space reliable unless a stable AMD/vLLM endpoint will remain online for judging.
 
 ```text
-http://127.0.0.1:7860
+LLM_PROVIDER=mock
+ENABLE_LLM_ENRICHMENT=false
+ENABLE_DEPENDENCY_CVE_LOOKUP=false
 ```
 
-Test a small repo first:
-
-```text
-https://github.com/pallets/itsdangerous
-```
-
-## Create The Space
-
-1. Go to Hugging Face Spaces.
-2. Create a new Space.
-3. Choose SDK: `Gradio`.
-4. Choose hardware: CPU basic for the mock MVP.
-5. Use the AMD hackathon organization if the event requires it.
+This still runs the static multi-agent audit and produces exportable reports.
 
 ## Required Files
 
-These must be at the repo root:
+These files must be at the Space repo root:
 
 ```text
 app.py
 requirements.txt
 README.md
+app/
 ```
 
-The README includes the Space metadata:
+The README front matter tells Spaces how to start the app:
 
 ```yaml
 sdk: gradio
@@ -48,87 +33,94 @@ sdk_version: 6.14.0
 app_file: app.py
 ```
 
-## Environment Variables
+## Local Preflight
 
-For the public mock demo:
+From the repo root:
 
-```text
-LLM_PROVIDER=mock
-ENABLE_LLM_ENRICHMENT=false
+```bash
+pip install -r requirements.txt
+python -m compileall -q app tests app.py
+python -m pytest --basetemp=.tmp_pytest -p no:cacheprovider
+python app.py
 ```
 
-Keep the public Space in mock mode unless the vLLM endpoint is stable and meant to stay online. Do not expose private API keys in the README or app UI; use Space secrets for any real endpoint key.
+Open the local URL printed by Gradio.
 
-For a later AMD/vLLM deployment:
-
-```text
-LLM_PROVIDER=vllm
-LLM_BASE_URL=http://YOUR_VLLM_ENDPOINT/v1
-LLM_API_KEY=not-needed-if-your-endpoint-does-not-require-one
-LLM_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct
-ENABLE_LLM_ENRICHMENT=false
-MAX_LLM_CHUNKS=2
-```
-
-## First Hosted Smoke Test
-
-In the deployed Space, test:
+Test:
 
 ```text
 https://github.com/pallets/itsdangerous
 ```
 
-Then test:
+Then:
 
 ```text
 https://github.com/psf/requests
 ```
 
-Expected behavior:
+Confirm:
 
-- Crawler maps files.
-- Chunker creates chunks.
-- Security, Performance, Quality, and Docs agents run.
-- Synthesizer returns a report.
-- Report shows a prioritized subset while preserving total finding counts.
+- agent progress appears
+- findings render
+- severity filters work
+- finding detail panel updates when clicking rows
+- Markdown download works
+- JSON download works
+- Diagnostics tab shows `Provider: mock` and `Status: OK`
+- Benchmark tab works in mock mode
 
-## LLM Diagnostics
+## Space Settings
 
-The Space includes a Diagnostics tab. In mock mode, it should show:
+- SDK: Gradio
+- Hardware: CPU basic for public mock mode
+- App file: `app.py`
+- License: MIT
+- Suggested short description:
 
 ```text
-Provider: mock
-Status: OK
+Multi-agent production-readiness scanner for AI-generated code
 ```
 
-After switching to vLLM, use the same tab to verify:
+## Deploy / Update
 
-- `/v1/models` responds.
-- A small chat completion succeeds.
-- The configured model name is available.
+Push the same project code to the hackathon organization Space repo.
 
-Only set `ENABLE_LLM_ENRICHMENT=true` after diagnostics pass. If the vLLM endpoint fails, SwarmAudit still runs in static-rule mode when enrichment is disabled. All four analysis agents support optional enrichment and validate LLM output before merging findings.
+After the build starts:
 
-If the hosted vLLM endpoint is temporary for judging, switch the Space back to:
+1. Open the Space logs.
+2. Wait for the Gradio startup message.
+3. Open the app.
+4. Run the small repo smoke test.
+5. Keep a screenshot of the working report for submission material.
+
+## Optional AMD/vLLM Mode
+
+Only use this if the endpoint is stable:
 
 ```text
-LLM_PROVIDER=mock
+LLM_PROVIDER=vllm
+LLM_BASE_URL=http://YOUR_VLLM_ENDPOINT/v1
+LLM_API_KEY=stored-as-space-secret
+LLM_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct
 ENABLE_LLM_ENRICHMENT=false
+MAX_LLM_CHUNKS=2
 ```
 
-after capturing the demo proof.
+Run the Diagnostics tab before enabling enrichment.
 
-## Benchmark Tab
+After diagnostics passes:
 
-The Space includes a Benchmark tab. In mock mode, it should return a quick successful result. After switching to vLLM on AMD MI300X, use it to capture endpoint latency and include the numbers in the final README/demo.
+```text
+ENABLE_LLM_ENRICHMENT=true
+```
 
-Use the AMD runbook for the lowest-credit test order: [`AMD_VLLM_RUNBOOK.md`](AMD_VLLM_RUNBOOK.md).
+If the endpoint is temporary, switch back to mock mode after recording demo proof.
 
-## If The Space Fails
+## Common Issues
 
-Check the Space logs first. Common issues:
+- **Build error**: check `requirements.txt` and root `app.py`.
+- **No logs**: verify the code is pushed to the actual Space remote, not only GitHub.
+- **Clone error**: test a smaller public repo first.
+- **Port issue locally**: `python app.py` tries `7860` first and falls back locally when no explicit port env var is set.
+- **Secrets**: never put real API keys in README, screenshots, or `.env.example`.
 
-- Dependency install failure: verify `requirements.txt`.
-- App import failure: verify root `app.py`.
-- GitHub clone failure: verify Space has outbound internet access.
-- Large repo timeout: test `pallets/itsdangerous` before larger repos.

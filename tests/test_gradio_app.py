@@ -186,7 +186,7 @@ def test_build_finding_rows_uses_actual_report_findings():
 def test_build_finding_choices_uses_actual_report_findings():
     choices = build_finding_choices(make_report_with_findings())
 
-    assert choices == ["MED   F-001  Missing timeout\napp.py:10  |  Performance Agent"]
+    assert choices == ["MED   Missing timeout\napp.py:10  |  Performance Agent"]
 
 
 def test_filter_findings_returns_only_selected_severity():
@@ -207,7 +207,7 @@ def test_filter_findings_returns_only_selected_severity():
 
     update, html = filter_findings("High 1", report)
 
-    assert update["choices"] == ["HIGH  F-002  High risk\napp.py:20  |  Security Agent"]
+    assert update["choices"] == ["HIGH  High risk\napp.py:20  |  Security Agent"]
     assert "High risk" in html
 
 
