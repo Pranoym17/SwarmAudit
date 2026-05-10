@@ -80,7 +80,41 @@ def test_render_report_summary_uses_report_counts():
         repo_url="https://github.com/example/project",
         scanned_file_count=4,
         skipped_file_count=1,
-        findings=[],
+        findings=[
+            Finding(
+                title="Critical issue",
+                severity=Severity.critical,
+                file_path="app.py",
+                line_start=1,
+                line_end=1,
+                description="Critical.",
+                why_it_matters="Important.",
+                suggested_fix="Fix.",
+                agent_source="Security Agent",
+            ),
+            Finding(
+                title="High issue one",
+                severity=Severity.high,
+                file_path="app.py",
+                line_start=2,
+                line_end=2,
+                description="High.",
+                why_it_matters="Important.",
+                suggested_fix="Fix.",
+                agent_source="Security Agent",
+            ),
+            Finding(
+                title="High issue two",
+                severity=Severity.high,
+                file_path="app.py",
+                line_start=3,
+                line_end=3,
+                description="High.",
+                why_it_matters="Important.",
+                suggested_fix="Fix.",
+                agent_source="Security Agent",
+            ),
+        ],
         severity_summary={
             Severity.critical: 1,
             Severity.high: 2,
@@ -133,7 +167,41 @@ def test_build_severity_filter_choices_uses_actual_counts():
         repo_url="https://github.com/example/project",
         scanned_file_count=4,
         skipped_file_count=1,
-        findings=[],
+        findings=[
+            Finding(
+                title="Critical issue",
+                severity=Severity.critical,
+                file_path="app.py",
+                line_start=1,
+                line_end=1,
+                description="Critical.",
+                why_it_matters="Important.",
+                suggested_fix="Fix.",
+                agent_source="Security Agent",
+            ),
+            Finding(
+                title="High issue one",
+                severity=Severity.high,
+                file_path="app.py",
+                line_start=2,
+                line_end=2,
+                description="High.",
+                why_it_matters="Important.",
+                suggested_fix="Fix.",
+                agent_source="Security Agent",
+            ),
+            Finding(
+                title="High issue two",
+                severity=Severity.high,
+                file_path="app.py",
+                line_start=3,
+                line_end=3,
+                description="High.",
+                why_it_matters="Important.",
+                suggested_fix="Fix.",
+                agent_source="Security Agent",
+            ),
+        ],
         severity_summary={
             Severity.critical: 1,
             Severity.high: 2,
@@ -144,7 +212,11 @@ def test_build_severity_filter_choices_uses_actual_counts():
         agents_run=["Synthesizer Agent"],
     )
 
-    assert build_severity_filter_choices(report) == ["All 3", "Critical 1", "High 2"]
+    assert build_severity_filter_choices(report) == [
+        ("All 3", "all"),
+        ("Critical 1", "critical"),
+        ("High 2", "high"),
+    ]
 
 
 def make_report_with_findings() -> AuditReport:
@@ -205,7 +277,7 @@ def test_filter_findings_returns_only_selected_severity():
     report = make_report_with_findings()
     report.findings.append(high)
 
-    update, html = filter_findings("High 1", report)
+    update, html = filter_findings("high", report)
 
     assert update["choices"] == ["HIGH  High risk\napp.py:20  |  Security Agent"]
     assert "High risk" in html
@@ -309,7 +381,7 @@ async def test_analyze_repo_empty_input_clears_report_exports():
     assert "Agent swarm" in result[1]
     assert "Files scanned" in result[2]
     assert "Audit report" in result[3]
-    assert result[4]["choices"] == ["All 0"]
+    assert result[4]["choices"] == [("All 0", "all")]
     assert "Security Score" in result[5]
     assert result[6]["choices"] == []
     assert result[6]["value"] is None
@@ -334,7 +406,7 @@ async def test_analyze_repo_failure_clears_report_exports(monkeypatch):
     assert "Agent swarm" in updates[-1][1]
     assert "Files scanned" in updates[-1][2]
     assert "Audit report" in updates[-1][3]
-    assert updates[-1][4]["choices"] == ["All 0"]
+    assert updates[-1][4]["choices"] == [("All 0", "all")]
     assert "Security Score" in updates[-1][5]
     assert updates[-1][6]["choices"] == []
     assert updates[-1][6]["value"] is None

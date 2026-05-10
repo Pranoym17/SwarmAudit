@@ -1,10 +1,14 @@
  ---
 title: SwarmAudit
+emoji: 🚀
+colorFrom: blue
+colorTo: cyan
 sdk: gradio
 sdk_version: 6.14.0
 app_file: app.py
 pinned: false
 license: mit
+short_description: Multi-agent production-readiness scanner for AI-generated code
 ---
 
 # SwarmAudit
@@ -301,4 +305,3 @@ For the hackathon submission, highlight:
 - Hugging Face Space deployment
 - practical business value: production readiness for AI-generated code
 - originality: combining security, operations, dependency, and CUDA-to-ROCm portability checks in one audit workflow
-

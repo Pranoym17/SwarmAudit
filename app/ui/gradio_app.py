@@ -570,10 +570,10 @@ button.primary:hover,
     color: var(--sa-text) !important;
 }
 
-.severity-filter-radio label:has(input[value^="Critical"]) span { color: var(--sa-red) !important; }
-.severity-filter-radio label:has(input[value^="High"]) span { color: var(--sa-orange) !important; }
-.severity-filter-radio label:has(input[value^="Medium"]) span { color: var(--sa-yellow) !important; }
-.severity-filter-radio label:has(input[value^="Low"]) span { color: var(--sa-blue) !important; }
+.severity-filter-radio label:has(input[value="critical"]) span { color: var(--sa-red) !important; }
+.severity-filter-radio label:has(input[value="high"]) span { color: var(--sa-orange) !important; }
+.severity-filter-radio label:has(input[value="medium"]) span { color: var(--sa-yellow) !important; }
+.severity-filter-radio label:has(input[value="low"]) span { color: var(--sa-blue) !important; }
 
 .severity-filter-radio span {
     font: 700 10px/14px JetBrains Mono, monospace !important;
@@ -1053,15 +1053,15 @@ def render_report_toolbar(report: AuditReport | None) -> str:
     """
 
 
-def build_severity_filter_choices(report: AuditReport | None) -> list[str]:
+def build_severity_filter_choices(report: AuditReport | None) -> list[tuple[str, str]]:
     if report is None:
-        return ["All 0"]
+        return [("All 0", "all")]
 
     displayed_counts = {severity: 0 for severity in Severity}
     for finding in report.findings:
         displayed_counts[finding.severity] += 1
 
-    choices = [f"All {len(report.findings)}"]
+    choices: list[tuple[str, str]] = [(f"All {len(report.findings)}", "all")]
     for severity, label in [
         (Severity.critical, "Critical"),
         (Severity.high, "High"),
@@ -1070,7 +1070,7 @@ def build_severity_filter_choices(report: AuditReport | None) -> list[str]:
     ]:
         count = displayed_counts.get(severity, 0)
         if count > 0:
-            choices.append(f"{label} {count}")
+            choices.append((f"{label} {count}", severity.value.lower()))
     return choices
 
 
@@ -1110,7 +1110,7 @@ async def analyze_repo(repo_url: str):
             render_agent_swarm(),
             render_empty_summary(),
             render_report_toolbar(None),
-            gr.update(choices=["All 0"], value="All 0"),
+            gr.update(choices=[("All 0", "all")], value="all"),
             format_report_overview_html(None),
             gr.update(choices=[], value=None),
             format_empty_finding_detail_html(),
@@ -1124,7 +1124,7 @@ async def analyze_repo(repo_url: str):
     agent_html = render_agent_swarm(progress)
     summary_html = render_empty_summary()
     report_toolbar_html = render_report_toolbar(None)
-    severity_filter_update = gr.update(choices=["All 0"], value="All 0")
+    severity_filter_update = gr.update(choices=[("All 0", "all")], value="all")
     report_overview_html = format_report_overview_html(None)
     finding_choice_update = gr.update(choices=[], value=None)
     finding_detail_html = format_empty_finding_detail_html()
@@ -1136,7 +1136,7 @@ async def analyze_repo(repo_url: str):
             if isinstance(event, AuditReport):
                 report_state = event
                 filter_choices = build_severity_filter_choices(event)
-                selected_filter = filter_choices[0]
+                selected_filter = "all"
                 severity_filter_update = gr.update(choices=filter_choices, value=selected_filter)
                 finding_choices = build_finding_choices(event, selected_filter)
                 finding_choice_update = gr.update(
@@ -1171,7 +1171,7 @@ async def analyze_repo(repo_url: str):
             render_agent_swarm(progress),
             render_empty_summary(),
             render_report_toolbar(None),
-            gr.update(choices=["All 0"], value="All 0"),
+            gr.update(choices=[("All 0", "all")], value="all"),
             format_report_overview_html(None),
             gr.update(choices=[], value=None),
             format_empty_finding_detail_html(),
@@ -1374,8 +1374,8 @@ def build_app() -> gr.Blocks:
                         with gr.Row(elem_classes=["report-header-row"]):
                             report_toolbar = gr.HTML(render_report_toolbar(None), scale=1)
                             severity_filter = gr.Radio(
-                                choices=["All 0"],
-                                value="All 0",
+                                choices=[("All 0", "all")],
+                                value="all",
                                 interactive=True,
                                 show_label=False,
                                 scale=0,
