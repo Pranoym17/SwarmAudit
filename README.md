@@ -295,13 +295,3 @@ tests/
 examples/
 ```
 
-## Submission Notes
-
-For the hackathon submission, highlight:
-
-- agentic workflow with multiple specialized agents
-- Qwen2.5-Coder integration through vLLM
-- AMD Developer Cloud + ROCm validation
-- Hugging Face Space deployment
-- practical business value: production readiness for AI-generated code
-- originality: combining security, operations, dependency, and CUDA-to-ROCm portability checks in one audit workflow
