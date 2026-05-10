@@ -36,28 +36,35 @@ class ErrorHandlingAgent:
                 findings.extend(self._scan_except_block(chunk, lines, index, actual_line, except_match.group(1)))
 
             if REQUEST_WITHOUT_TIMEOUT.search(line):
+                call_snippet = self._snippet(line)
                 findings.append(
                     self._finding(
                         "External HTTP call without timeout",
                         Severity.medium,
                         chunk,
                         actual_line,
-                        "An external request without a timeout can hang a worker during a downstream outage.",
-                        "Pass an explicit timeout and handle timeout exceptions with logging or retry policy.",
+                        f"`{call_snippet}` makes an external request without an explicit timeout.",
+                        f"Add `timeout=` to `{call_snippet}` and handle timeout exceptions with logging or retry policy.",
                         0.84,
+                        why_it_matters=(
+                            "This exact call can hold the worker until the operating system or remote service gives up, "
+                            "which makes downstream outages spread into the app."
+                        ),
                     )
                 )
 
             if JS_FETCH_WITHOUT_ABORT.search(line) and "AbortController" not in chunk.content:
+                call_snippet = self._snippet(line)
                 findings.append(
                     self._finding(
                         "Fetch call has no cancellation timeout",
                         Severity.low,
                         chunk,
                         actual_line,
-                        "Browser or Node fetch calls can wait indefinitely unless a timeout/cancellation path is provided.",
-                        "Use AbortController or a client wrapper that enforces request deadlines.",
+                        f"`{call_snippet}` uses fetch without an AbortController or deadline in this scanned chunk.",
+                        "Wrap this fetch in an AbortController timeout or a shared HTTP client that enforces request deadlines.",
                         0.76,
+                        why_it_matters="A stuck fetch can leave the user action or server-side request waiting with no bounded failure path.",
                     )
                 )
 
@@ -76,15 +83,17 @@ class ErrorHandlingAgent:
         findings: list[Finding] = []
 
         if exception_name in (None, "Exception", "BaseException"):
+            exception_label = exception_name or "bare except"
             findings.append(
                 self._finding(
                     "Broad exception handler",
                     Severity.medium,
                     chunk,
                     actual_line,
-                    "Broad exception handlers can hide unrelated production failures and make incidents harder to diagnose.",
-                    "Catch the narrow exception type you expect and let unexpected failures surface with context.",
+                    f"The handler catches `{exception_label}`, which can group unrelated failures into the same recovery path.",
+                    f"Replace `{exception_label}` with the narrow exception type expected here, and let unexpected failures surface with context.",
                     0.82,
+                    why_it_matters="Broad handlers make different failure modes look identical during incident triage.",
                 )
             )
 
@@ -96,27 +105,31 @@ class ErrorHandlingAgent:
         silent_body = normalized in {"pass", "..."} or normalized.startswith("return None")
 
         if silent_body:
+            body_preview = self._snippet(normalized.splitlines()[0] if normalized else "empty handler")
             findings.append(
                 self._finding(
                     "Exception swallowed without recovery",
                     Severity.high,
                     chunk,
                     actual_line,
-                    "The handler suppresses the exception without logging, retrying, or returning a meaningful fallback.",
-                    "Log the exception with context, re-raise when appropriate, or return a deliberate typed fallback.",
+                    f"The except block uses `{body_preview}` and suppresses the failure without logging, retrying, or returning a meaningful fallback.",
+                    "Log the exception with local context, re-raise when the caller must handle it, or return a deliberate typed fallback.",
                     0.9,
+                    why_it_matters="This handler erases the original failure at the exact point where debugging context is still available.",
                 )
             )
         elif not has_logging and not reraises:
+            first_action = self._snippet(normalized.splitlines()[0] if normalized else "handler body")
             findings.append(
                 self._finding(
                     "Exception handled without logging or re-raise",
                     Severity.medium,
                     chunk,
                     actual_line,
-                    "Handling an exception without logging or re-raising can erase the root cause during production incidents.",
-                    "Add structured logging with request context, or re-raise after adding recovery-specific context.",
+                    f"The except block continues with `{first_action}` but does not log or re-raise the exception.",
+                    "Add structured logging before this recovery path, or re-raise after adding recovery-specific context.",
                     0.82,
+                    why_it_matters="The recovery branch may keep execution going while hiding why the branch was needed.",
                 )
             )
 
@@ -146,6 +159,7 @@ class ErrorHandlingAgent:
         description: str,
         suggested_fix: str,
         confidence: float,
+        why_it_matters: str | None = None,
     ) -> Finding:
         return Finding(
             title=title,
@@ -154,9 +168,16 @@ class ErrorHandlingAgent:
             line_start=line_number,
             line_end=line_number,
             description=description,
-            why_it_matters="Weak error handling turns small downstream failures into outages that are hard to diagnose and recover from.",
+            why_it_matters=why_it_matters
+            or "Weak error handling turns small downstream failures into outages that are hard to diagnose and recover from.",
             suggested_fix=suggested_fix,
             agent_source=self.name,
             category="error_handling",
             confidence=confidence,
         )
+
+    def _snippet(self, line: str, max_length: int = 96) -> str:
+        normalized = " ".join(line.strip().split())
+        if len(normalized) <= max_length:
+            return normalized
+        return f"{normalized[: max_length - 3]}..."

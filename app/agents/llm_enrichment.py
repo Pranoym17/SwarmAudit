@@ -22,6 +22,14 @@ FINDING_SCHEMA_INSTRUCTIONS = (
     "}\n"
 )
 
+CONTEXTUAL_REVIEW_INSTRUCTIONS = (
+    "Make each finding specific to the exact code shown. "
+    "Reference the concrete function, call, config value, exception handler, or line pattern when visible. "
+    "Do not reuse generic boilerplate language across findings. "
+    "Do not report duplicates of the same issue in the same file unless the risk or fix is meaningfully different. "
+    "Descriptions should explain what this exact code does wrong; suggested_fix should name the specific API, guard, timeout, logger, or config change to use."
+)
+
 
 class LLMEnrichmentMixin:
     name: str
@@ -69,6 +77,7 @@ class LLMEnrichmentMixin:
         )
         return (
             f"{review_instruction}\n"
+            f"{CONTEXTUAL_REVIEW_INSTRUCTIONS}\n"
             f"{FINDING_SCHEMA_INSTRUCTIONS}\n"
             f'Every finding must set "agent_source" to "{self.name}". '
             "Only include findings that are specific, actionable, and tied to the provided files.\n\n"

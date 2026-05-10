@@ -68,50 +68,58 @@ class PerformanceAgent(LLMEnrichmentMixin):
                 loop_stack.append(len(loop_match.group(1)))
 
             if REQUEST_WITHOUT_TIMEOUT.search(line):
+                call_snippet = self._snippet(line)
                 findings.append(
                     self._finding(
                         "HTTP request without timeout",
                         Severity.medium,
                         chunk,
                         actual_line,
-                        "Network calls without timeouts can hang workers and make the app appear frozen under bad network conditions.",
-                        "Pass an explicit timeout, for example requests.get(url, timeout=10).",
+                        f"`{call_snippet}` does not pass `timeout=`, so this request can wait indefinitely.",
+                        f"Add a bounded timeout to this call, for example `{call_snippet.rstrip(')')}, timeout=10)` if the arguments fit that shape.",
+                        why_it_matters="This specific network call can tie up a worker or thread when the remote service stalls.",
                     )
                 )
 
             if async_indent_stack and "time.sleep(" in line:
+                sleep_snippet = self._snippet(line)
                 findings.append(
                     self._finding(
                         "Blocking sleep inside async function",
                         Severity.medium,
                         chunk,
                         actual_line,
-                        "time.sleep blocks the event loop, delaying unrelated async work.",
-                        "Use await asyncio.sleep(...) inside async functions.",
+                        f"`{sleep_snippet}` runs inside an async scope and blocks the event loop.",
+                        "Replace this call with `await asyncio.sleep(...)` or move blocking work out of the async path.",
+                        why_it_matters="Blocking the event loop here delays unrelated coroutines that should be able to keep running.",
                     )
                 )
 
             if loop_stack and PYTHON_FILE_READ.search(line):
+                read_snippet = self._snippet(line)
                 findings.append(
                     self._finding(
                         "File read inside loop",
                         Severity.low,
                         chunk,
                         actual_line,
-                        "Repeated disk reads inside loops can dominate runtime and slow audits on larger inputs.",
-                        "Read once before the loop, cache results, or stream data deliberately.",
+                        f"`{read_snippet}` appears inside a loop, so the same path may hit disk repeatedly.",
+                        "Read once before the loop, cache by file path, or stream deliberately if every iteration needs fresh data.",
+                        why_it_matters="Repeated disk I/O in this loop can dominate runtime as the input size grows.",
                     )
                 )
 
             if SYNC_FS_JS.search(line):
+                fs_snippet = self._snippet(line)
                 findings.append(
                     self._finding(
                         "Synchronous filesystem call",
                         Severity.low,
                         chunk,
                         actual_line,
-                        "Synchronous filesystem APIs block the Node.js event loop and can hurt request latency.",
-                        "Use async fs.promises APIs or move blocking work outside latency-sensitive paths.",
+                        f"`{fs_snippet}` uses a synchronous filesystem API.",
+                        "Use `fs.promises` or move this filesystem work outside latency-sensitive request paths.",
+                        why_it_matters="This call blocks the Node.js event loop while disk I/O completes.",
                     )
                 )
 
@@ -125,6 +133,7 @@ class PerformanceAgent(LLMEnrichmentMixin):
         line_number: int,
         description: str,
         suggested_fix: str,
+        why_it_matters: str | None = None,
     ) -> Finding:
         return Finding(
             title=title,
@@ -133,7 +142,14 @@ class PerformanceAgent(LLMEnrichmentMixin):
             line_start=line_number,
             line_end=line_number,
             description=description,
-            why_it_matters="Performance issues in hot paths can increase latency, resource usage, and demo analysis time.",
+            why_it_matters=why_it_matters
+            or "Performance issues in hot paths can increase latency, resource usage, and demo analysis time.",
             suggested_fix=suggested_fix,
             agent_source=self.name,
         )
+
+    def _snippet(self, line: str, max_length: int = 96) -> str:
+        normalized = " ".join(line.strip().split())
+        if len(normalized) <= max_length:
+            return normalized
+        return f"{normalized[: max_length - 3]}..."

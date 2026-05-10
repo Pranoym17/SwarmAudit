@@ -56,15 +56,18 @@ class ObservabilityAgent:
             if LOGGER_CALL.search(line):
                 has_logger = True
             if SENSITIVE_LOG_LINE.search(line):
+                sensitive_term = self._sensitive_term(line)
+                log_snippet = self._snippet(line)
                 findings.append(
                     self._finding(
                         "Sensitive value may be written to logs",
                         Severity.high,
                         chunk,
                         actual_line,
-                        "The log/print statement appears to include credential-like data.",
-                        "Remove secrets from logs and log stable identifiers or masked values instead.",
+                        f"`{log_snippet}` appears to log credential-like data containing `{sensitive_term}`.",
+                        f"Remove `{sensitive_term}` from this log statement and log a masked value or stable identifier instead.",
                         0.86,
+                        why_it_matters="This exact log statement can put sensitive data into terminal output, CI logs, or hosted application logs.",
                     )
                 )
 
@@ -97,6 +100,7 @@ class ObservabilityAgent:
                     f"This file has {count} print statements and no structured logging was detected in the scanned repo.",
                     "Use a logger with levels and structured context such as request_id, route, and operation.",
                     0.72,
+                    why_it_matters=f"`{file_path}` will be harder to filter and correlate in production logs because print output has no severity or structured context.",
                 )
             )
 
@@ -111,6 +115,7 @@ class ObservabilityAgent:
             "The scanned code defines web routes but no /health, /ready, /live, or /ping endpoint was detected.",
             "Add a lightweight health endpoint that returns process readiness and dependency status appropriate for your deployment.",
             0.74,
+            why_it_matters="Deployments and uptime checks need a predictable endpoint to tell whether this service process is alive and ready.",
         )
 
     def _finding(
@@ -122,6 +127,7 @@ class ObservabilityAgent:
         description: str,
         suggested_fix: str,
         confidence: float,
+        why_it_matters: str | None = None,
     ) -> Finding:
         return Finding(
             title=title,
@@ -130,9 +136,20 @@ class ObservabilityAgent:
             line_start=line_number,
             line_end=line_number,
             description=description,
-            why_it_matters="Without basic observability, production failures are harder to detect, triage, and explain during incidents.",
+            why_it_matters=why_it_matters
+            or "Without basic observability, production failures are harder to detect, triage, and explain during incidents.",
             suggested_fix=suggested_fix,
             agent_source=self.name,
             category="observability",
             confidence=confidence,
         )
+
+    def _sensitive_term(self, line: str) -> str:
+        match = re.search(r"(?i)(password|passwd|secret|token|api[_-]?key)", line)
+        return match.group(1) if match else "secret"
+
+    def _snippet(self, line: str, max_length: int = 96) -> str:
+        normalized = " ".join(line.strip().split())
+        if len(normalized) <= max_length:
+            return normalized
+        return f"{normalized[: max_length - 3]}..."

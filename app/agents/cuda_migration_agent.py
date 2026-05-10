@@ -67,6 +67,7 @@ class CudaMigrationAgent:
                             title=title,
                             chunk=chunk,
                             line_number=actual_line,
+                            matched_line=line,
                             suggested_fix=fix,
                             confidence=confidence,
                         )
@@ -79,19 +80,27 @@ class CudaMigrationAgent:
         title: str,
         chunk: CodeChunk,
         line_number: int,
+        matched_line: str,
         suggested_fix: str,
         confidence: float,
     ) -> Finding:
+        snippet = self._snippet(matched_line)
         return Finding(
             title=title,
             severity=Severity.medium,
             file_path=chunk.file_path,
             line_start=line_number,
             line_end=line_number,
-            description="The code references CUDA/NVIDIA-specific APIs that may need review before running on AMD ROCm infrastructure.",
-            why_it_matters="AMD MI300X deployment works best when GPU code avoids hard NVIDIA assumptions or has a clear ROCm migration path.",
+            description=f"`{snippet}` references a CUDA/NVIDIA-specific API that needs review before AMD ROCm deployment.",
+            why_it_matters="This exact GPU assumption can fail or reduce portability when the app moves from NVIDIA CUDA environments to AMD MI300X/ROCm.",
             suggested_fix=suggested_fix,
             agent_source=self.name,
             category="cuda_migration",
             confidence=confidence,
         )
+
+    def _snippet(self, line: str, max_length: int = 96) -> str:
+        normalized = " ".join(line.strip().split())
+        if len(normalized) <= max_length:
+            return normalized
+        return f"{normalized[: max_length - 3]}..."
